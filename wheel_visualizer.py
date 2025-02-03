@@ -173,7 +173,7 @@ class WheelVisualizer:
         self.spin_count = self.spin_count_input.get()
         self.target_angle = self.target_angle_input.get()
 
-        self.initial_angle = self.angle - 360
+        self.initial_angle = self.angle-360 if self.angle - self.target_angle >= 0 else self.angle
 
         self.generate_colors()
         self.draw_wheel()
