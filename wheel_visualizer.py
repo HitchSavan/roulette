@@ -21,8 +21,8 @@ class WheelVisualizer:
 
         self.acceleration = 0
         self.initial_speed = 0
-        self.spin_count = 0
-        self.spin_count_input = tk.IntVar(value=10)
+        self.spins_amount = 0
+        self.spins_amount_input = tk.IntVar(value=10)
         self.spin_time = 5
         self.spin_time_input = tk.IntVar(value=5)
         self.target_angle = 0
@@ -134,7 +134,7 @@ class WheelVisualizer:
         if self.speed > 0:
             time = datetime.datetime.now() - self.start_time
             time = time.total_seconds()
-            self.angle, self.speed = get_pos(self.initial_angle, time, self.initial_speed, self.acceleration)
+            self.angle, self.speed = get_pos(self.initial_speed, self.acceleration, time, self.initial_angle)
 
             self.angle %= 360
             self.angle_slider.set(self.angle)
@@ -149,8 +149,8 @@ class WheelVisualizer:
         if self.speed <= 0:
             self.start_time = datetime.datetime.now()
 
-            total_path = self.target_angle + 360 * self.spin_count - self.initial_angle
-            self.acceleration, self.initial_speed = get_spin_stats(self.spin_time, total_path)
+            self.initial_speed = get_initial_speed(self.target_angle, self.spins_amount, self.spin_time, self.initial_angle)
+            self.acceleration = get_acceleration(self.initial_speed, self.spin_time)
 
             self.speed = self.initial_speed
             self.update()
@@ -164,11 +164,14 @@ class WheelVisualizer:
         self.angle_slider.set(self.angle)
 
     def apply_settings(self):
+
         self.sectors_amount = self.sectors_amount_input.get()
         self.spin_time = self.spin_time_input.get()
-        self.spin_count = self.spin_count_input.get()
         self.target_angle = self.target_angle_input.get()
 
+        self.spins_amount_input.set(get_spins_amount(random.randint(1, 10), self.spin_time))
+        self.spins_amount = self.spins_amount_input.get()
+        
         self.initial_angle = self.angle
 
         if self.angle - self.target_angle >= 0:
@@ -192,13 +195,16 @@ class WheelVisualizer:
         tk.Label(frame, text="Sectors:").pack(side=tk.LEFT)
         tk.Entry(frame, textvariable=self.sectors_amount_input, width=5).pack(side=tk.LEFT)
         tk.Label(frame, text="Spin count:").pack(side=tk.LEFT)
-        tk.Entry(frame, textvariable=self.spin_count_input, width=5).pack(side=tk.LEFT)
+        self.spins_amount_field = tk.Entry(frame, textvariable=self.spins_amount_input, width=5)
+        self.spins_amount_field.pack(side=tk.LEFT)
         tk.Label(frame, text="Spin time:").pack(side=tk.LEFT)
         tk.Entry(frame, textvariable=self.spin_time_input, width=5).pack(side=tk.LEFT)
         tk.Label(frame, text="Target angle:").pack(side=tk.LEFT)
         tk.Entry(frame, textvariable=self.target_angle_input, width=5).pack(side=tk.LEFT)
         tk.Button(frame, text="Rand", command=self.random_target).pack(side=tk.LEFT)
         tk.Button(frame, text="Apply", command=self.apply_settings).pack(side=tk.LEFT)
+
+        self.spins_amount_field.config(state='disabled')
 
         self.angle_slider = tk.Scale(self.root, from_=0, to=360, orient=tk.HORIZONTAL, command=self.update_angle)
         self.angle_slider.pack(fill=tk.X)
