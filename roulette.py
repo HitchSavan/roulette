@@ -14,7 +14,6 @@ def get_target_sector_degrees(total_sectors_amount: int, total_degrees = 360):
     target_sector_pos = (one_sector_degrees * target_sector_number, one_sector_degrees * (target_sector_number + 1))
     return target_sector_pos
 
-
 def get_initial_speed(target_time, total_path):
     return 2 * total_path / target_time
 
@@ -33,6 +32,10 @@ def get_pos(initial_wheel_position, cur_time, initial_speed, deceleration):
     position = initial_wheel_position + initial_speed * cur_time + (deceleration * pow(cur_time, 2)) / 2
 
     return position, cur_speed
+
+def angle_to_sectors_amount(angle, sectors_amount):
+    sector_size = 360 / sectors_amount
+    return int((360 - angle) / (sector_size)) % sectors_amount
 
 if __name__ == '__main__':
 

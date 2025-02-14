@@ -5,10 +5,6 @@ import random
 from colorsys import hls_to_rgb
 from roulette import *
 
-def angle_to_sector_num(angle, num_sectors):
-    extent = 360 / num_sectors
-    return int((360 - angle) / (extent)) % num_sectors
-
 class WheelVisualizer:
     def __init__(self, root):
         self.root = root
@@ -19,8 +15,8 @@ class WheelVisualizer:
         self.initial_angle = 0
         self.speed = 0
         self.running = False
-        self.num_sectors_input = tk.IntVar(value=6)
-        self.num_sectors = 6
+        self.sectors_amount_input = tk.IntVar(value=6)
+        self.sectors_amount = 6
         self.colors = []
 
         self.acceleration = 0
@@ -39,7 +35,7 @@ class WheelVisualizer:
 
     def generate_colors(self):
         self.colors = []
-        for _ in range(self.num_sectors):
+        for _ in range(self.sectors_amount):
             h = random.uniform(0, 1)  # Full hue range
             s = random.uniform(0.2, 1.0)  # Saturation
             l = random.uniform(0.5, 0.9)  # Pastel range
@@ -49,13 +45,13 @@ class WheelVisualizer:
     def draw_wheel(self):
         self.canvas.delete("wheel")
         cx, cy, r = 200, 250, 100
-        num_sectors = self.num_sectors
-        extent = 360 / num_sectors
+        sectors_amount = self.sectors_amount
+        sector_size = 360 / sectors_amount
 
-        selected_sector = angle_to_sector_num(self.angle, self.num_sectors)
+        selected_sector = angle_to_sectors_amount(self.angle, self.sectors_amount)
 
-        for i in range(num_sectors):
-            start_angle = (360 / num_sectors) * i + self.angle + 90
+        for i in range(sectors_amount):
+            start_angle = (360 / sectors_amount) * i + self.angle + 90
             width = 2 if i == selected_sector else 1
             self.canvas.create_arc(
                 cx - r,
@@ -63,13 +59,13 @@ class WheelVisualizer:
                 cx + r,
                 cy + r,
                 start=start_angle,
-                extent=extent,
+                extent=sector_size,
                 fill=self.colors[i % len(self.colors)],
                 width=width,
                 outline="black",
                 tags="wheel",
             )
-            mid_angle = math.radians(start_angle + extent / 2)
+            mid_angle = math.radians(start_angle + sector_size / 2)
             text_x = cx + r * 0.6 * math.cos(mid_angle)
             text_y = cy - r * 0.6 * math.sin(mid_angle)
             self.canvas.create_text(
@@ -129,7 +125,7 @@ class WheelVisualizer:
         self.canvas.create_text(
             200,
             90,
-            text=f"Target: {angle_to_sector_num(self.target_angle, self.num_sectors) + 1}",
+            text=f"Target: {angle_to_sectors_amount(self.target_angle, self.sectors_amount) + 1}",
             font=("Arial", 14, "bold"),
             tags="acc_text",
         )
@@ -168,12 +164,15 @@ class WheelVisualizer:
         self.angle_slider.set(self.angle)
 
     def apply_settings(self):
-        self.num_sectors = self.num_sectors_input.get()
+        self.sectors_amount = self.sectors_amount_input.get()
         self.spin_time = self.spin_time_input.get()
         self.spin_count = self.spin_count_input.get()
         self.target_angle = self.target_angle_input.get()
 
-        self.initial_angle = self.angle-360 if self.angle - self.target_angle >= 0 else self.angle
+        self.initial_angle = self.angle
+
+        if self.angle - self.target_angle >= 0:
+            self.initial_angle -= 360
 
         self.generate_colors()
         self.draw_wheel()
@@ -191,7 +190,7 @@ class WheelVisualizer:
         tk.Button(frame, text="Start", command=self.start).pack(side=tk.LEFT)
         tk.Button(frame, text="Stop", command=self.stop).pack(side=tk.LEFT)
         tk.Label(frame, text="Sectors:").pack(side=tk.LEFT)
-        tk.Entry(frame, textvariable=self.num_sectors_input, width=5).pack(side=tk.LEFT)
+        tk.Entry(frame, textvariable=self.sectors_amount_input, width=5).pack(side=tk.LEFT)
         tk.Label(frame, text="Spin count:").pack(side=tk.LEFT)
         tk.Entry(frame, textvariable=self.spin_count_input, width=5).pack(side=tk.LEFT)
         tk.Label(frame, text="Spin time:").pack(side=tk.LEFT)
