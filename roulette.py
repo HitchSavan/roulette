@@ -18,7 +18,7 @@ def get_pos(initial_speed, acceleration, cur_time, initial_angle=0):
 
     position = initial_angle + initial_speed * cur_time + (acceleration * pow(cur_time, 2)) / 2
 
-    return position, cur_speed
+    return position % 360, cur_speed
 
 def angle_to_sectors_amount(angle, sectors_amount):
     sector_size = 360 / sectors_amount

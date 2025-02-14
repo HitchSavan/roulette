@@ -136,7 +136,6 @@ class WheelVisualizer:
             time = time.total_seconds()
             self.angle, self.speed = get_pos(self.initial_speed, self.acceleration, time, self.initial_angle)
 
-            self.angle %= 360
             self.angle_slider.set(self.angle)
 
             self.draw_wheel()
