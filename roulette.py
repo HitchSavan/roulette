@@ -75,7 +75,7 @@ def get_angle(
     return angle % 360
 
 
-def get_speed(initial_speed: float, acceleration: float, cur_time: float):
+def get_speed(initial_speed: float, acceleration: float, cur_time: float) -> float:
     """
     Returns `wheel speed` at the given `time` from the given `initial
     speed` and `acceleration`
