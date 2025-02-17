@@ -1,9 +1,18 @@
+"""
+Roulette wheel visualization module
+
+Draws a wheel with the controls for simulating and 
+adjusting roulette parameters
+"""
+
 import datetime
 import tkinter as tk
 import math
 import random
 from colorsys import hls_to_rgb
-from roulette import *
+import roulette
+import utils
+
 
 class WheelVisualizer:
     def __init__(self, root):
@@ -27,6 +36,7 @@ class WheelVisualizer:
         self.spin_time_input = tk.IntVar(value=5)
         self.target_angle = 0
         self.target_angle_input = tk.IntVar(value=100)
+        self.spin_coeff = tk.IntVar(value=1)
 
         self.start_time = None
 
@@ -40,7 +50,9 @@ class WheelVisualizer:
             s = random.uniform(0.2, 1.0)  # Saturation
             l = random.uniform(0.5, 0.9)  # Pastel range
             r, g, b = hls_to_rgb(h, l, s)
-            self.colors.append("#%02x%02x%02x" % (int(r * 255), int(g * 255), int(b * 255)))
+            self.colors.append(
+                "#%02x%02x%02x" % (int(r * 255), int(g * 255), int(b * 255))
+            )
 
     def draw_wheel(self):
         self.canvas.delete("wheel")
@@ -48,7 +60,7 @@ class WheelVisualizer:
         sectors_amount = self.sectors_amount
         sector_size = 360 / sectors_amount
 
-        selected_sector = angle_to_sectors_amount(self.angle, self.sectors_amount)
+        selected_sector = utils.angle_to_sector(self.angle, self.sectors_amount)
 
         for i in range(sectors_amount):
             start_angle = (360 / sectors_amount) * i + self.angle + 90
@@ -125,7 +137,7 @@ class WheelVisualizer:
         self.canvas.create_text(
             200,
             90,
-            text=f"Target: {angle_to_sectors_amount(self.target_angle, self.sectors_amount) + 1}",
+            text=f"Target: {utils.angle_to_sector(self.target_angle, self.sectors_amount) + 1}",
             font=("Arial", 14, "bold"),
             tags="acc_text",
         )
@@ -134,7 +146,10 @@ class WheelVisualizer:
         if self.speed > 0:
             time = datetime.datetime.now() - self.start_time
             time = time.total_seconds()
-            self.angle, self.speed = get_pos(self.initial_speed, self.acceleration, time, self.initial_angle)
+            self.speed = roulette.get_speed(self.initial_speed, self.acceleration, time)
+            self.angle = roulette.get_angle(
+                self.initial_speed, self.acceleration, time, self.initial_angle
+            )
 
             self.angle_slider.set(self.angle)
 
@@ -148,8 +163,12 @@ class WheelVisualizer:
         if self.speed <= 0:
             self.start_time = datetime.datetime.now()
 
-            self.initial_speed = get_initial_speed(self.target_angle, self.spins_amount, self.spin_time, self.initial_angle)
-            self.acceleration = get_acceleration(self.initial_speed, self.spin_time)
+            self.initial_speed = roulette.get_initial_speed(
+                self.target_angle, self.spins_amount, self.spin_time, self.initial_angle
+            )
+            self.acceleration = roulette.get_acceleration(
+                self.initial_speed, self.spin_time
+            )
 
             self.speed = self.initial_speed
             self.update()
@@ -168,9 +187,11 @@ class WheelVisualizer:
         self.spin_time = self.spin_time_input.get()
         self.target_angle = self.target_angle_input.get()
 
-        self.spins_amount_input.set(get_spins_amount(random.randint(1, 10), self.spin_time))
+        self.spins_amount_input.set(
+            roulette.get_spins_amount(self.spin_coeff.get(), self.spin_time)
+        )
         self.spins_amount = self.spins_amount_input.get()
-        
+
         self.initial_angle = self.angle
 
         if self.angle - self.target_angle >= 0:
@@ -183,6 +204,9 @@ class WheelVisualizer:
         self.angle = float(value)
         self.draw_wheel()
 
+    def update_spin_coeff(self, value):
+        self.spin_coeff.set(value)
+
     def random_target(self):
         self.target_angle_input.set(random.uniform(0, 360))
 
@@ -192,21 +216,33 @@ class WheelVisualizer:
         tk.Button(frame, text="Start", command=self.start).pack(side=tk.LEFT)
         tk.Button(frame, text="Stop", command=self.stop).pack(side=tk.LEFT)
         tk.Label(frame, text="Sectors:").pack(side=tk.LEFT)
-        tk.Entry(frame, textvariable=self.sectors_amount_input, width=5).pack(side=tk.LEFT)
+        tk.Entry(frame, textvariable=self.sectors_amount_input, width=5).pack(
+            side=tk.LEFT
+        )
         tk.Label(frame, text="Spin count:").pack(side=tk.LEFT)
-        self.spins_amount_field = tk.Entry(frame, textvariable=self.spins_amount_input, width=5)
+        self.spins_amount_field = tk.Entry(
+            frame, textvariable=self.spins_amount_input, width=5
+        )
         self.spins_amount_field.pack(side=tk.LEFT)
         tk.Label(frame, text="Spin time:").pack(side=tk.LEFT)
         tk.Entry(frame, textvariable=self.spin_time_input, width=5).pack(side=tk.LEFT)
         tk.Label(frame, text="Target angle:").pack(side=tk.LEFT)
-        tk.Entry(frame, textvariable=self.target_angle_input, width=5).pack(side=tk.LEFT)
+        tk.Entry(frame, textvariable=self.target_angle_input, width=5).pack(
+            side=tk.LEFT
+        )
         tk.Button(frame, text="Rand", command=self.random_target).pack(side=tk.LEFT)
         tk.Button(frame, text="Apply", command=self.apply_settings).pack(side=tk.LEFT)
 
-        self.spins_amount_field.config(state='disabled')
+        # self.spins_amount_field.config(state="disabled")
 
-        self.angle_slider = tk.Scale(self.root, from_=0, to=360, orient=tk.HORIZONTAL, command=self.update_angle)
+        self.angle_slider = tk.Scale(
+            self.root, from_=0, to=360, orient=tk.HORIZONTAL, command=self.update_angle
+        )
+        self.spin_coeff_slider = tk.Scale(
+            from_=1, to=10, orient=tk.HORIZONTAL, command=self.update_spin_coeff
+        )
         self.angle_slider.pack(fill=tk.X)
+        self.spin_coeff_slider.pack(fill=tk.X)
 
 
 if __name__ == "__main__":
