@@ -3,8 +3,12 @@ Roulette modeling module.
 
 Contains functions for calculating roulette wheel moving.
 
-We assume that the wheel rotates uniformly with constant 
-negative acceleration.
+Full wheel life cycle (from start to stop) consists of three stages:
+1. Acceleration stage - initial speed is zero, spins sime time with
+    positive acceleration until calculated speed is met;
+2. Linear stage - spin some time with 0 acceleration and constant speed;
+3. Decceleration stage - initial speed equals speed from stage 2,
+    acceleration is negative, wheel spins until full stop.
 """
 from enum import Enum
 
@@ -21,10 +25,10 @@ LINEAR_SPEED_COEF = 0.3
 class Stages(Enum):
     ACCELERATION_STAGE = 0.3
     LINEAR_STAGE = ACCELERATION_STAGE + 0.3
-    DECCELERATION_STAGE = 1 - ACCELERATION_STAGE
+    DECCELERATION_STAGE = 1
 
 
-def get_current_stage(cur_time: float, total_time: float) -> int:
+def get_current_stage(cur_time: float, total_time: float) -> Stages:
     if cur_time < total_time * Stages.ACCELERATION_STAGE.value:
         return Stages.ACCELERATION_STAGE
     if cur_time < total_time * Stages.LINEAR_STAGE.value:
@@ -70,8 +74,8 @@ def get_linear_stage_speed(
     target_angle: float, spins_amount: int, target_time: float, initial_angle: float = 0
 ) -> float:
     """
-    Clalculates wheel `initial speed` from the given `target
-    angle`, `amount of spins`, `spin time` and `initial angle`
+    Clalculates wheel `initial speed` for linear movement stage from the given
+    `target angle`, `amount of spins`, `spin time` and `initial angle`
     """
 
     total_path = target_angle + 360 * spins_amount - initial_angle
@@ -82,8 +86,8 @@ def get_linear_stage_speed(
 
 def get_acceleration(initial_speed: float, target_time: float, final_speed: float = 0) -> float:
     """
-    Calculates wheel acceleration from the given `initial speed`
-    and `target time`
+    Calculates wheel acceleration from the given `initial speed`,
+    `target time` and `final speed`
     """
 
     acceleration = (final_speed - initial_speed) / target_time
