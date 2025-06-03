@@ -10,7 +10,7 @@ Full wheel life cycle (from start to stop) consists of three stages:
 3. Decceleration stage - initial speed equals speed from stage 2,
     acceleration is negative, wheel spins until full stop.
 """
-from enum import Enum
+from enum import Enum, auto
 
 import utils
 
@@ -19,35 +19,42 @@ SPIN_COEF_MAX = 10
 SPIN_COEF_MIN_NORM = 0.5
 SPIN_COEF_MAX_NORM = 1.5
 
-# percentage of full spin time; total sum must be not greater than 1
 class Stages(Enum):
-    ACCELERATION_STAGE = 0.3
-    LINEAR_STAGE = ACCELERATION_STAGE + 0.3
-    DECCELERATION_STAGE = 1
+    ACCELERATION_STAGE = auto()
+    LINEAR_STAGE = auto()
+    DECCELERATION_STAGE = auto()
+    STOP = auto()
+
+class Stage:
+    # duration is percentage of full spin time; total sum must be not greater than 1
+    def __init__(self, stage_type: Stages, start_time: float, duration: float):
+        self.stage_type = stage_type
+        self.duration = duration
+        self.start_time = start_time
+
+    def get_end_time(self) -> float:
+        return self.start_time + self.duration
+
+    def is_active(self, cur_time: float) -> float:
+        return cur_time >= self.start_time and cur_time < self.get_end_time()
+
+total_time_template = 100
+accel_stage = Stage(Stages.ACCELERATION_STAGE, 0, total_time_template * 0.3)
+linear_stage = Stage(Stages.LINEAR_STAGE, accel_stage.get_end_time(), total_time_template * 0.3)
+deccel_stage = Stage(Stages.DECCELERATION_STAGE, linear_stage.get_end_time(), total_time_template - linear_stage.get_end_time())
+stages_order = [
+        accel_stage,
+        linear_stage,
+        deccel_stage
+    ]
+
+def get_current_stage(cur_time: float) -> Stage:
+    for stage in stages_order:
+        if stage.is_active(cur_time):
+            return stage
+    return Stage(Stages.STOP, 0, 0)
 
 
-def get_current_stage(cur_time: float, total_time: float) -> Stages:
-    if cur_time <= total_time * Stages.ACCELERATION_STAGE.value:
-        return Stages.ACCELERATION_STAGE
-    if cur_time <= total_time * Stages.LINEAR_STAGE.value:
-        return Stages.LINEAR_STAGE
-    if cur_time > total_time * Stages.LINEAR_STAGE.value:
-        return Stages.DECCELERATION_STAGE
-
-def get_stage_end_time(cur_stage: Stages, total_time: float) -> float:
-    return total_time * cur_stage.value
-
-def get_stage_start_time(cur_stage: Stages, total_time: float) -> float:
-    if cur_stage == Stages.LINEAR_STAGE:
-        return total_time * Stages.ACCELERATION_STAGE.value
-    if cur_stage == Stages.DECCELERATION_STAGE:
-        return total_time * Stages.LINEAR_STAGE.value
-    return 0
-
-def get_stage_length_time(cur_stage: Stages, total_time: float) -> float:
-    return get_stage_end_time(cur_stage, total_time) - get_stage_start_time(cur_stage, total_time)
-
-# needs configuring
 def get_spins_amount(spins_amount_coeff: int, spin_time: float) -> int:
     """
     Calculates wheel `spins amount` from the given `spin time`
@@ -90,8 +97,8 @@ def get_linear_stage_speed(
 
     total_path = target_angle + 360 * spins_amount - initial_angle
 
-    t1 = target_time * Stages.ACCELERATION_STAGE.value
-    t2 = target_time * Stages.LINEAR_STAGE.value
+    t1 = target_time * accel_stage.get_end_time()
+    t2 = target_time * linear_stage.get_end_time()
     t3 = target_time
 
     linear_speed = total_path / ( (t1 + t2 - t3) / 2 - t1 + t3 )
