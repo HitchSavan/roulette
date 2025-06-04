@@ -26,8 +26,7 @@ class Stages(Enum):
     STOP = auto()
 
 class Stage:
-    # duration is percentage of full spin time; total sum must be not greater than 1
-    def __init__(self, stage_type: Stages, start_time: float, duration: float):
+    def __init__(self, stage_type: Stages, start_time: float, duration: float) -> None:
         self.stage_type = stage_type
         self.duration = duration
         self.start_time = start_time
@@ -37,6 +36,27 @@ class Stage:
 
     def is_active(self, cur_time: float) -> float:
         return cur_time >= self.start_time and cur_time < self.get_end_time()
+    
+class StagesController:
+    def __init__(self) -> None:
+        self.stages_order = []
+        self.active_stage_id = 0
+
+    def append_stage(self, stage: Stage) -> None:
+        stage.start_time = self.stages_order[-1].get_end_time()
+        self.stages_order.append(stage)
+
+    def emplace_stage(self, stage_type: Stages, duration: float) -> None:
+        stage = Stage(stage_type, 0, duration)
+        self.append_stage(stage)
+
+    def get_current_stage(self, cur_time: float) -> Stage:
+        for id in range(self.active_stage_id, len(self.stages_order)):
+            stage = self.stages_order[id]
+            if stage.is_active(cur_time):
+                self.active_stage_id = id
+                return stage
+        return Stage(Stages.STOP, 0, 0)
 
 total_time_template = 100
 accel_stage = Stage(Stages.ACCELERATION_STAGE, 0, total_time_template * 0.3)
@@ -48,12 +68,9 @@ stages_order = [
         deccel_stage
     ]
 
-def get_current_stage(cur_time: float) -> Stage:
-    for stage in stages_order:
-        if stage.is_active(cur_time):
-            return stage
-    return Stage(Stages.STOP, 0, 0)
-
+stages_controller = StagesController()
+for stage in stages_order:
+    stages_controller.append_stage(stage)
 
 def get_spins_amount(spins_amount_coeff: int, spin_time: float) -> int:
     """
