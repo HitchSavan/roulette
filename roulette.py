@@ -25,38 +25,55 @@ class Stages(Enum):
     DECCELERATION_STAGE = auto()
     STOP = auto()
 
+
 class Stage:
-    def __init__(self, stage_type: Stages, start_time: float, duration: float) -> None:
+    def __init__(
+            self, stage_type: Stages, start_time: float, duration: float, 
+            start_speed: float = 0, end_speed: float = 0
+            ) -> None:
         self.stage_type = stage_type
         self.duration = duration
         self.start_time = start_time
+        self.start_speed = start_speed
+        self.end_speed = end_speed
+        self.acceleration = get_acceleration(self.start_speed, self.duration, self.end_speed)
 
     def get_end_time(self) -> float:
         return self.start_time + self.duration
 
     def is_active(self, cur_time: float) -> float:
         return cur_time >= self.start_time and cur_time < self.get_end_time()
-    
+
+
 class StagesController:
     def __init__(self) -> None:
-        self.stages_order = []
+        self.stage_order = []
         self.active_stage_id = 0
+        
+    def clear_stages(self) -> None:
+        self.stage_order.clear()
 
     def append_stage(self, stage: Stage) -> None:
-        stage.start_time = self.stages_order[-1].get_end_time()
-        self.stages_order.append(stage)
+        stage.start_time = (self.stage_order[-1].get_end_time()
+                            if len(self.stage_order) > 0
+                            else 0)
+        self.stage_order.append(stage)
 
-    def emplace_stage(self, stage_type: Stages, duration: float) -> None:
-        stage = Stage(stage_type, 0, duration)
+    def emplace_stage(
+            self, stage_type: Stages, duration: float, 
+            start_speed: float = 0, end_speed: float = 0
+            ) -> None:
+        stage = Stage(stage_type, 0, duration, start_speed, end_speed)
         self.append_stage(stage)
 
     def get_current_stage(self, cur_time: float) -> Stage:
-        for id in range(self.active_stage_id, len(self.stages_order)):
-            stage = self.stages_order[id]
+        for id in range(self.active_stage_id, len(self.stage_order)):
+            stage = self.stage_order[id]
             if stage.is_active(cur_time):
                 self.active_stage_id = id
                 return stage
         return Stage(Stages.STOP, 0, 0)
+
 
 total_time_template = 100
 accel_stage = Stage(Stages.ACCELERATION_STAGE, 0, total_time_template * 0.3)
@@ -103,7 +120,7 @@ def get_initial_speed(
 
     return initial_speed
 
-
+# for stages arrangement "acceleration-linear-decceleration"
 def get_linear_stage_speed(
     target_angle: float, spins_amount: int, target_time: float, initial_angle: float = 0
 ) -> float:
