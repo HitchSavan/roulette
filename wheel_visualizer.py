@@ -41,7 +41,7 @@ class WheelVisualizer:
 
         self.current_stage = roulette.Stages.ACCELERATION_STAGE
 
-        self.start_time = None
+        self.start_time = datetime.datetime.now()
 
         self.create_controls()
         self.apply_settings()
@@ -237,7 +237,7 @@ class WheelVisualizer:
         self.spin_coeff.set(value)
 
     def random_target(self):
-        self.target_angle_input.set(random.uniform(0, 360))
+        self.target_angle_input.set(int(random.uniform(0, 360)))
 
     def create_controls(self):
         frame = tk.Frame(self.root)

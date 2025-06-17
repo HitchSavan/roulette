@@ -31,7 +31,7 @@ def get_current_stage(cur_time: float, total_time: float) -> Stages:
         return Stages.ACCELERATION_STAGE
     if cur_time <= total_time * Stages.LINEAR_STAGE.value:
         return Stages.LINEAR_STAGE
-    if cur_time > total_time * Stages.LINEAR_STAGE.value:
+    else:
         return Stages.DECCELERATION_STAGE
 
 def get_stage_end_time(cur_stage: Stages, total_time: float) -> float:
@@ -70,7 +70,7 @@ def get_initial_speed(
     target_angle: float, spins_amount: int, target_time: float, initial_angle: float = 0
 ) -> float:
     """
-    Clalculates wheel `initial speed` from the given `target
+    Calculates wheel `initial speed` from the given `target
     angle`, `amount of spins`, `spin time` and `initial angle`
     """
 
@@ -84,7 +84,7 @@ def get_linear_stage_speed(
     target_angle: float, spins_amount: int, target_time: float, initial_angle: float = 0
 ) -> float:
     """
-    Clalculates wheel `initial speed` for linear movement stage from the given
+    Calculates wheel `initial speed` for linear movement stage from the given
     `target angle`, `amount of spins`, `spin time` and `initial angle`
     """
 
