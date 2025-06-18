@@ -28,11 +28,20 @@ class Stages(Enum):
 
 class Stage:
     def __init__(
-            self, stage_type: Stages, start_time: float, duration: float, 
-            start_speed: float = 0, end_speed: float = 0
+            self, stage_type: Stages, start_time: float = 0,
+            duration: float = -1, start_speed: float = 0,
+            end_speed: float = 0, time_coefficient : float = -1, total_spin_time : float = -1
             ) -> None:
         self.stage_type = stage_type
-        self.duration = duration
+        if (all(x == -1 for x in {duration, time_coefficient}) or 
+            (duration == -1 and any(x == -1 for x in {total_spin_time, time_coefficient}))):
+            raise ValueError("Specify either duration or time coefficient with total spin time")
+    
+        self.time_coefficient = time_coefficient
+        if duration != -1:
+            self.duration = duration
+        else:
+            self.duration = total_spin_time * self.time_coefficient
         self.start_time = start_time
         self.start_speed = start_speed
         self.end_speed = end_speed
@@ -43,11 +52,16 @@ class Stage:
 
     def is_active(self, cur_time: float) -> float:
         return cur_time >= self.start_time and cur_time < self.get_end_time()
+    
+    def update_total_time(self, start_time: float, total_time: float) -> None:
+        self.start_time = start_time
+        self.duration = total_time * self.time_coefficient
+        self.acceleration = get_acceleration(self.start_speed, self.duration, self.end_speed)
 
 
 class StagesController:
-    def __init__(self) -> None:
-        self.stage_order = []
+    def __init__(self, stage_order: "list[Stage]" = []) -> None:
+        self.stage_order = stage_order
         self.active_stage_id = 0
         
     def clear_stages(self) -> None:
@@ -73,6 +87,12 @@ class StagesController:
                 self.active_stage_id = id
                 return stage
         return Stage(Stages.STOP, 0, 0)
+    
+    def update_total_time(self, total_time) -> None:
+        start_time = 0
+        for stage in self.stage_order:
+            stage.update_total_time(start_time, total_time)
+            start_time = stage.get_end_time()
 
 
 total_time_template = 100
@@ -111,7 +131,7 @@ def get_initial_speed(
     target_angle: float, spins_amount: int, target_time: float, initial_angle: float = 0
 ) -> float:
     """
-    Clalculates wheel `initial speed` from the given `target
+    Calculates wheel `initial speed` from the given `target
     angle`, `amount of spins`, `spin time` and `initial angle`
     """
 
@@ -125,7 +145,7 @@ def get_linear_stage_speed(
     target_angle: float, spins_amount: int, target_time: float, initial_angle: float = 0
 ) -> float:
     """
-    Clalculates wheel `initial speed` for linear movement stage from the given
+    Calculates wheel `initial speed` for linear movement stage from the given
     `target angle`, `amount of spins`, `spin time` and `initial angle`
     """
 
