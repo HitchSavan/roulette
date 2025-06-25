@@ -40,10 +40,17 @@ class WheelVisualizer:
         self.spin_coeff = tk.IntVar(value=1)
 
         self.stages_controller = roulette.StagesController()
+        self.current_stage = roulette.Stage(roulette.Stages.STOP, 0)
 
-        self.stages_controller.emplace_stage(roulette.Stages.ACCELERATION_STAGE, self.spin_time * 0.3, self.spin_time)
-        self.stages_controller.emplace_stage(roulette.Stages.LINEAR_STAGE, self.spin_time * 0.3, self.spin_time)
-        self.stages_controller.emplace_stage(roulette.Stages.DECCELERATION_STAGE, self.spin_time - self.stages_controller.total_spin_time, self.spin_time)
+        self.stages_controller.emplace_stage(
+            roulette.Stages.ACCELERATION_STAGE,
+            self.spin_time * 0.3, self.spin_time)
+        self.stages_controller.emplace_stage(
+            roulette.Stages.LINEAR_STAGE,
+            self.spin_time * 0.3, self.spin_time)
+        self.stages_controller.emplace_stage(
+            roulette.Stages.DECCELERATION_STAGE,
+            self.spin_time - self.stages_controller.total_spin_time, self.spin_time)
 
         self.start_time = datetime.datetime.now()
 
@@ -153,7 +160,9 @@ class WheelVisualizer:
         self.canvas.create_text(
             200,
             110,
-            text=f"Current stage: {self.stages_controller.stage_order[self.stages_controller.active_stage_id].stage_type.name}",
+            text=f"""Current stage: {
+                self.stages_controller.stage_order[self.stages_controller.active_stage_id].stage_type.name
+                }""",
             font=("Arial", 14, "bold"),
             tags="stage_text",
         )
@@ -172,23 +181,24 @@ class WheelVisualizer:
 
         # if self.speed > 0 or self.current_stage.stage_type == roulette.Stages.ACCELERATION_STAGE:
         if self.current_stage.stage_type == roulette.Stages.LINEAR_STAGE and self.acceleration > 0:
-                self.initial_angle = roulette.get_angle(
-                    self.initial_speed,
-                    self.acceleration,
-                    self.current_stage.start_time,
-                    self.initial_angle
-                )
-                self.acceleration = 0
-                self.initial_speed = self.linear_speed
-        elif self.current_stage.stage_type == roulette.Stages.DECCELERATION_STAGE and self.acceleration == 0:
-                self.initial_angle = roulette.get_angle(
-                    self.initial_speed,
-                    self.acceleration,
-                    self.stages_controller.prev_stage(time).duration,
-                    self.initial_angle
-                )
-                self.acceleration = roulette.get_acceleration(self.linear_speed,
-                                                                self.current_stage.duration)
+            self.initial_angle = roulette.get_angle(
+                self.initial_speed,
+                self.acceleration,
+                self.current_stage.start_time,
+                self.initial_angle
+            )
+            self.acceleration = 0
+            self.initial_speed = self.linear_speed
+        elif (self.current_stage.stage_type == roulette.Stages.DECCELERATION_STAGE and
+              self.acceleration == 0):
+            self.initial_angle = roulette.get_angle(
+                self.initial_speed,
+                self.acceleration,
+                self.stages_controller.prev_stage(time).duration,
+                self.initial_angle
+            )
+            self.acceleration = roulette.get_acceleration(self.linear_speed,
+                                                            self.current_stage.duration)
 
         self.speed = roulette.get_speed(self.initial_speed, self.acceleration, stage_time)
         self.angle = roulette.get_angle(

@@ -51,8 +51,10 @@ class Stage:
 
     def is_active(self, cur_time: float) -> float:
         return cur_time >= self.start_time and cur_time < self.get_end_time()
-    
-    def update_total_time(self, start_time: float, total_time: float, time_coefficient: float) -> None:
+
+    def update_total_time(
+            self, start_time: float, total_time: float, time_coefficient: float
+            ) -> None:
         self.time_coefficient = time_coefficient
         self.start_time = start_time
         self.duration = total_time * self.time_coefficient
@@ -71,8 +73,8 @@ class StagesController:
         self.total_spin_time = 0
 
         self.STOP_ID = -1
-        self.STOP_STAGE = Stage(Stages.STOP, 0, 0)
-        
+        self.STOP_STAGE = Stage(Stages.STOP, 0)
+
     def clear_stages(self) -> None:
         self.stage_order.clear()
         self.active_stage_id = 0
@@ -93,16 +95,16 @@ class StagesController:
         self.append_stage(stage)
 
     def get_current_stage(self, cur_time: float) -> Stage:
-        for id in range(self.active_stage_id, len(self.stage_order)):
-            if id == self.STOP_ID:
+        for stage_id in range(self.active_stage_id, len(self.stage_order)):
+            if stage_id == self.STOP_ID:
                 continue
-            stage = self.stage_order[id]
+            stage = self.stage_order[stage_id]
             if stage.is_active(cur_time):
-                self.active_stage_id = id
+                self.active_stage_id = stage_id
                 return stage
         self.active_stage_id = self.STOP_ID
         return self.STOP_STAGE
-    
+
     def update_total_time(self, total_time: float) -> None:
         start_time = 0
         self.total_spin_time = 0
