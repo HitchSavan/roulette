@@ -28,24 +28,19 @@ class Stages(Enum):
 
 class Stage:
     def __init__(
-            self, stage_type: Stages, start_time: float = 0,
-            duration: float = -1, start_speed: float = 0,
-            end_speed: float = 0, time_coefficient : float = -1, total_spin_time : float = -1
+            self, stage_type: Stages, duration: float,
+            start_time: float = 0, start_speed: float = 0,
+            end_speed: float = 0, total_spin_time : float = -1
             ) -> None:
         self.stage_type = stage_type
 
         if stage_type == Stages.STOP:
             return
 
-        if (all(x == -1 for x in {duration, time_coefficient}) or 
-            (duration == -1 and any(x == -1 for x in {total_spin_time, time_coefficient}))):
-            raise ValueError("Specify either duration or time coefficient with total spin time")
-    
-        self.time_coefficient = time_coefficient
-        if duration != -1:
-            self.duration = duration
-        else:
-            self.duration = total_spin_time * self.time_coefficient
+        self.duration = duration
+        if total_spin_time != -1:
+            self.time_coefficient = self.duration / total_spin_time
+
         self.start_time = start_time
         self.start_speed = start_speed
         self.end_speed = end_speed
@@ -57,7 +52,8 @@ class Stage:
     def is_active(self, cur_time: float) -> float:
         return cur_time >= self.start_time and cur_time < self.get_end_time()
     
-    def update_total_time(self, start_time: float, total_time: float) -> None:
+    def update_total_time(self, start_time: float, total_time: float, time_coefficient: float) -> None:
+        self.time_coefficient = time_coefficient
         self.start_time = start_time
         self.duration = total_time * self.time_coefficient
         self.acceleration = get_acceleration(self.start_speed, self.duration, self.end_speed)
@@ -93,7 +89,7 @@ class StagesController:
             self, stage_type: Stages, duration: float, total_spin_time: float,
             start_speed: float = 0, end_speed: float = 0
             ) -> None:
-        stage = Stage(stage_type, 0, duration, start_speed, end_speed, duration / total_spin_time)
+        stage = Stage(stage_type, duration, 0, start_speed, end_speed, total_spin_time)
         self.append_stage(stage)
 
     def get_current_stage(self, cur_time: float) -> Stage:
@@ -109,8 +105,9 @@ class StagesController:
     
     def update_total_time(self, total_time: float) -> None:
         start_time = 0
+        self.total_spin_time = 0
         for stage in self.stage_order:
-            stage.update_total_time(start_time, total_time)
+            stage.update_total_time(start_time, total_time, stage.duration / total_time)
             start_time = stage.get_end_time()
             self.total_spin_time += stage.duration
 

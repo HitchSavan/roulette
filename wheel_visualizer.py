@@ -201,7 +201,6 @@ class WheelVisualizer:
         self.root.after(10, self.update)
 
     def start(self):
-        # self.stop()
         self.stop()
         self.apply_settings()
         if self.speed <= 0:
@@ -224,9 +223,6 @@ class WheelVisualizer:
             self.update()
 
     def stop(self):
-        # if not self.speed:
-        #     self.angle = 0
-
         self.speed = 0
         self.draw_wheel()
         self.angle_slider.set(self.angle)
