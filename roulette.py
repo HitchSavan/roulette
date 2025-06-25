@@ -70,28 +70,29 @@ STOP_ID = -1
 STOP_STAGE = Stage(Stages.STOP, 0)
 
 class StagesController:
-    def __init__(self, stage_order: "list[Stage]" = []) -> None:
+    def __init__(self, total_spin_time: float, stage_order: "list[Stage]" = []) -> None:
         self.stage_order = stage_order
         self.active_stage_id = 0
-        self.total_spin_time = 0
+        self.total_spin_time = total_spin_time
+        self.total_stages_duration = 0
 
     def clear_stages(self) -> None:
         self.stage_order.clear()
         self.active_stage_id = 0
-        self.total_spin_time = 0
+        self.total_stages_duration = 0
 
     def append_stage(self, stage: Stage) -> None:
         stage.start_time = (self.stage_order[-1].get_end_time()
                             if len(self.stage_order) > 0
                             else 0)
         self.stage_order.append(stage)
-        self.total_spin_time += stage.duration
+        self.total_stages_duration += stage.duration
 
     def emplace_stage(
-            self, stage_type: Stages, duration: float, total_spin_time: float,
+            self, stage_type: Stages, duration: float,
             start_speed: float = 0, end_speed: float = 0
             ) -> None:
-        stage = Stage(stage_type, duration, 0, start_speed, end_speed, total_spin_time)
+        stage = Stage(stage_type, duration, 0, start_speed, end_speed, self.total_spin_time)
         self.append_stage(stage)
 
     def get_current_stage(self, cur_time: float) -> Stage:
@@ -105,13 +106,15 @@ class StagesController:
         self.active_stage_id = STOP_ID
         return STOP_STAGE
 
-    def update_total_time(self, total_time: float) -> None:
+    def update_total_time(self, new_total_time: float) -> None:
         start_time = 0
-        self.total_spin_time = 0
+        self.total_spin_time = new_total_time
         for stage in self.stage_order:
-            stage.update_total_time(start_time, total_time, stage.duration / total_time)
+            stage.update_total_time(
+                start_time, self.total_spin_time, stage.duration / self.total_spin_time
+                )
             start_time = stage.get_end_time()
-            self.total_spin_time += stage.duration
+            self.total_stages_duration += stage.duration
 
     def next_stage(self, cur_time: float) -> Stage:
         self.get_current_stage(cur_time)

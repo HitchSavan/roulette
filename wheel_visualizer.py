@@ -39,18 +39,18 @@ class WheelVisualizer:
         self.target_angle_input = tk.IntVar(value=100)
         self.spin_coeff = tk.IntVar(value=1)
 
-        self.stages_controller = roulette.StagesController()
+        self.stages_controller = roulette.StagesController(self.spin_time)
         self.current_stage = roulette.STOP_STAGE
 
         self.stages_controller.emplace_stage(
             roulette.Stages.ACCELERATION_STAGE,
-            self.spin_time * 0.3, self.spin_time)
+            self.spin_time * 0.3)
         self.stages_controller.emplace_stage(
             roulette.Stages.LINEAR_STAGE,
-            self.spin_time * 0.3, self.spin_time)
+            self.spin_time * 0.3)
         self.stages_controller.emplace_stage(
             roulette.Stages.DECCELERATION_STAGE,
-            self.spin_time - self.stages_controller.total_spin_time, self.spin_time)
+            self.spin_time - self.stages_controller.total_stages_duration)
 
         self.start_time = datetime.datetime.now()
 
