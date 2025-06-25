@@ -66,14 +66,14 @@ class Stage:
         self.end_speed = end_speed
         self.acceleration = get_acceleration(self.start_speed, self.duration, self.end_speed)
 
+STOP_ID = -1
+STOP_STAGE = Stage(Stages.STOP, 0)
+
 class StagesController:
     def __init__(self, stage_order: "list[Stage]" = []) -> None:
         self.stage_order = stage_order
         self.active_stage_id = 0
         self.total_spin_time = 0
-
-        self.STOP_ID = -1
-        self.STOP_STAGE = Stage(Stages.STOP, 0)
 
     def clear_stages(self) -> None:
         self.stage_order.clear()
@@ -96,14 +96,14 @@ class StagesController:
 
     def get_current_stage(self, cur_time: float) -> Stage:
         for stage_id in range(self.active_stage_id, len(self.stage_order)):
-            if stage_id == self.STOP_ID:
+            if stage_id == STOP_ID:
                 continue
             stage = self.stage_order[stage_id]
             if stage.is_active(cur_time):
                 self.active_stage_id = stage_id
                 return stage
-        self.active_stage_id = self.STOP_ID
-        return self.STOP_STAGE
+        self.active_stage_id = STOP_ID
+        return STOP_STAGE
 
     def update_total_time(self, total_time: float) -> None:
         start_time = 0
@@ -117,7 +117,7 @@ class StagesController:
         self.get_current_stage(cur_time)
         next_id = self.active_stage_id + 1
         if next_id == len(self.stage_order):
-            return self.STOP_STAGE
+            return STOP_STAGE
         return self.stage_order[next_id]
 
     def prev_stage(self, cur_time: float) -> Stage:

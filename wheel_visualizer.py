@@ -40,7 +40,7 @@ class WheelVisualizer:
         self.spin_coeff = tk.IntVar(value=1)
 
         self.stages_controller = roulette.StagesController()
-        self.current_stage = roulette.Stage(roulette.Stages.STOP, 0)
+        self.current_stage = roulette.STOP_STAGE
 
         self.stages_controller.emplace_stage(
             roulette.Stages.ACCELERATION_STAGE,
