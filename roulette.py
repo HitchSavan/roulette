@@ -108,13 +108,13 @@ class StagesController:
 
     def update_total_time(self, new_total_time: float) -> None:
         start_time = 0
-        self.total_spin_time = new_total_time
         for stage in self.stage_order:
             stage.update_total_time(
-                start_time, self.total_spin_time, stage.duration / self.total_spin_time
+                start_time, new_total_time, stage.duration / self.total_spin_time
                 )
             start_time = stage.get_end_time()
             self.total_stages_duration += stage.duration
+        self.total_spin_time = new_total_time
 
     def next_stage(self, cur_time: float) -> Stage:
         self.get_current_stage(cur_time)
