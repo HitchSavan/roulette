@@ -142,7 +142,7 @@ class WheelVisualizer:
             90,
             text=f"Target: {utils.angle_to_sector(self.target_angle, self.sectors_amount) + 1}",
             font=("Arial", 14, "bold"),
-            tags="acc_text",
+            tags="target_text",
         )
 
     def update(self):
@@ -151,7 +151,7 @@ class WheelVisualizer:
         self.current_stage = roulette.get_current_stage(time, self.spin_time)
         stage_time = time
         if self.current_stage.value > roulette.Stages.ACCELERATION_STAGE.value:
-            stage_time %= roulette.get_stage_start_time(self.current_stage, self.spin_time)
+            stage_time -= roulette.get_stage_start_time(self.current_stage, self.spin_time)
 
         if self.speed > 0 or self.current_stage == roulette.Stages.ACCELERATION_STAGE:
             if self.current_stage == roulette.Stages.LINEAR_STAGE and self.acceleration > 0:
