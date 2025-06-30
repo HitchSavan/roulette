@@ -36,6 +36,8 @@ class Stage:
 
         if stage_type == Stages.STOP:
             return
+        if duration < 0:
+            raise ValueError("Stage duration cannot be negative")
 
         self.duration = duration
         if total_spin_time != -1:
@@ -76,6 +78,10 @@ class StagesController:
         self.total_spin_time = total_spin_time
         self.total_stages_duration = 0
 
+        self.stages_by_type = {}
+        for stage in self.stage_order:
+            self.stages_by_type[stage.stage_type] = stage
+
     def clear_stages(self) -> None:
         self.stage_order.clear()
         self.active_stage_id = 0
@@ -87,6 +93,9 @@ class StagesController:
                             else 0)
         self.stage_order.append(stage)
         self.total_stages_duration += stage.duration
+
+        cur_stage_type = stage.stage_type
+        self.stages_by_type[cur_stage_type] = stage
 
     def emplace_stage(
             self, stage_type: Stages, duration: float,
@@ -108,6 +117,7 @@ class StagesController:
 
     def update_total_time(self, new_total_time: float) -> None:
         start_time = 0
+        self.total_stages_duration = 0
         for stage in self.stage_order:
             stage.update_total_time(
                 start_time, new_total_time, stage.duration / self.total_spin_time
@@ -186,7 +196,9 @@ def get_acceleration(initial_speed: float, target_time: float, final_speed: floa
     `target time` and `final speed`
     """
 
-    acceleration = (final_speed - initial_speed) / target_time
+    acceleration = ((final_speed - initial_speed) / target_time
+                             if target_time > 0
+                             else 0)
 
     return acceleration
 
