@@ -265,8 +265,6 @@ class WheelVisualizer:
         self.spin_time = self.spin_time_input.get()
         self.target_angle = self.target_angle_input.get()
 
-        self.stages_controller.update_total_time(self.spin_time)
-
         self.spins_amount_input.set(
             roulette.get_spins_amount(self.spin_coeff.get(), self.spin_time)
         )
@@ -277,6 +275,13 @@ class WheelVisualizer:
         if self.angle - self.target_angle >= 0:
             self.initial_angle -= 360
 
+        for [stage_type, slider] in self.stage_sliders.items():
+            (self.stages_controller
+                       .stages_by_type[stage_type]
+                       .time_coefficient) = slider.get() / 100
+
+        self.stages_controller.update_total_time(self.spin_time)
+
         self.generate_colors()
         self.draw_wheel()
 
@@ -286,6 +291,37 @@ class WheelVisualizer:
 
     def update_spin_coeff(self, value):
         self.spin_coeff.set(value)
+
+    def update_duration(self, stage_type: roulette.Stages):
+        stage_set = set([
+            roulette.Stages.ACCELERATION_STAGE,
+            roulette.Stages.LINEAR_STAGE,
+            roulette.Stages.DECCELERATION_STAGE
+            ])
+        stage_set.discard(stage_type)
+
+        value = self.stage_sliders[stage_type].get()
+
+        prev_coeff = (self.stages_controller
+                      .stages_by_type[stage_type]
+                      .time_coefficient) * 100
+        
+        stage_1 = stage_set.pop()
+        stage_2 = stage_set.pop()
+
+        self.stage_sliders[max(stage_1, stage_2)].set(
+            self.stage_sliders[max(stage_1, stage_2)].get() + (prev_coeff - value) / 2)
+        self.stage_sliders[min(stage_1, stage_2)].set(
+            100 - (value + self.stage_sliders[max(stage_1, stage_2)].get()))
+
+    def update_acc_duration(self, value):
+        self.update_duration(roulette.Stages.ACCELERATION_STAGE)
+
+    def update_lin_duration(self, value):
+        self.update_duration(roulette.Stages.LINEAR_STAGE)
+
+    def update_decc_duration(self, value):
+        self.update_duration(roulette.Stages.DECCELERATION_STAGE)
 
     def random_target(self):
         self.target_angle_input.set(int(random.uniform(0, 360)))
@@ -321,8 +357,34 @@ class WheelVisualizer:
         self.spin_coeff_slider = tk.Scale(
             from_=1, to=10, orient=tk.HORIZONTAL, command=self.update_spin_coeff
         )
+        self.acceleration_duration_percentage_slider = tk.Scale(
+            self.root, from_=0, to=100, orient=tk.HORIZONTAL
+        )
+        self.acceleration_duration_percentage_slider.bind(
+            "<ButtonRelease-1>", self.update_acc_duration
+            )
+        self.linear_duration_percentage_slider = tk.Scale(
+            self.root, from_=0, to=100, orient=tk.HORIZONTAL
+        )
+        self.linear_duration_percentage_slider.bind(
+            "<ButtonRelease-1>", self.update_lin_duration
+            )
+        self.decceleration_duration_percentage_slider = tk.Scale(
+            self.root, from_=0, to=100, orient=tk.HORIZONTAL
+        )
+        self.decceleration_duration_percentage_slider.bind(
+            "<ButtonRelease-1>", self.update_decc_duration
+            )
+        self.stage_sliders = {
+            roulette.Stages.ACCELERATION_STAGE: self.acceleration_duration_percentage_slider,
+            roulette.Stages.LINEAR_STAGE: self.linear_duration_percentage_slider,
+            roulette.Stages.DECCELERATION_STAGE: self.decceleration_duration_percentage_slider
+        }
         self.angle_slider.pack(fill=tk.X)
         self.spin_coeff_slider.pack(fill=tk.X)
+        for [stage_type, slider] in self.stage_sliders.items():
+            slider.pack(fill=tk.X)
+            slider.set(self.stages_controller.stages_by_type[stage_type].time_coefficient * 100)
 
 
 if __name__ == "__main__":

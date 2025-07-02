@@ -25,6 +25,15 @@ class Stages(Enum):
     DECCELERATION_STAGE = auto()
     STOP = auto()
 
+    def __eq__(self, r) -> bool:
+        return self.value == r.value
+
+    def __gt__(self, r) -> bool:
+        return self.value > r.value
+
+    def __hash__(self) -> int:
+        return super().__hash__()
+
 
 class Stage:
     def __init__(
@@ -38,6 +47,8 @@ class Stage:
             return
         if duration < 0:
             raise ValueError("Stage duration cannot be negative")
+
+        self.time_coefficient = -1
 
         self.duration = duration
         if total_spin_time != -1:
@@ -78,7 +89,7 @@ class StagesController:
         self.total_spin_time = total_spin_time
         self.total_stages_duration = 0
 
-        self.stages_by_type = {}
+        self.stages_by_type: dict[Stages, Stage] = {}
         for stage in self.stage_order:
             self.stages_by_type[stage.stage_type] = stage
 
@@ -120,7 +131,12 @@ class StagesController:
         self.total_stages_duration = 0
         for stage in self.stage_order:
             stage.update_total_time(
-                start_time, new_total_time, stage.duration / self.total_spin_time
+                start_time, new_total_time,
+                (
+                    stage.time_coefficient
+                    if stage.time_coefficient != -1
+                    else stage.duration / self.total_spin_time
+                    )
                 )
             start_time = stage.get_end_time()
             self.total_stages_duration += stage.duration
