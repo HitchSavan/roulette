@@ -309,16 +309,18 @@ class WheelVisualizer:
         stage_1 = stage_set.pop()
         stage_2 = stage_set.pop()
 
-        if self.stage_sliders[min(stage_1, stage_2)].get() > 0:
-            size_coeff = (self.stage_sliders[max(stage_1, stage_2)].get() /
-                          self.stage_sliders[min(stage_1, stage_2)].get())
-        else:
-            size_coeff = 2
+        stage_1, stage_2 = max(stage_1, stage_2), min(stage_1, stage_2)
 
-        self.stage_sliders[max(stage_1, stage_2)].set(
-            self.stage_sliders[max(stage_1, stage_2)].get() + (prev_coeff - value) / 2 * size_coeff)
-        self.stage_sliders[min(stage_1, stage_2)].set(
-            100 - (value + self.stage_sliders[max(stage_1, stage_2)].get()))
+        if self.stage_sliders[stage_2].get() <= 0:
+            stage_1, stage_2 = stage_2, stage_1
+
+        size_coeff = (self.stage_sliders[stage_1].get() /
+                        self.stage_sliders[stage_2].get())
+
+        self.stage_sliders[stage_1].set(
+            self.stage_sliders[stage_1].get() + (prev_coeff - value) / 2 * size_coeff)
+        self.stage_sliders[stage_2].set(
+            100 - (value + self.stage_sliders[stage_1].get()))
 
     def update_acc_duration(self, value):
         self.update_duration(roulette.Stages.ACCELERATION_STAGE)
