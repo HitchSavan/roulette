@@ -305,12 +305,18 @@ class WheelVisualizer:
         prev_coeff = (self.stages_controller
                       .stages_by_type[stage_type]
                       .time_coefficient) * 100
-        
+
         stage_1 = stage_set.pop()
         stage_2 = stage_set.pop()
 
+        if self.stage_sliders[min(stage_1, stage_2)].get() > 0:
+            size_coeff = (self.stage_sliders[max(stage_1, stage_2)].get() /
+                          self.stage_sliders[min(stage_1, stage_2)].get())
+        else:
+            size_coeff = 2
+
         self.stage_sliders[max(stage_1, stage_2)].set(
-            self.stage_sliders[max(stage_1, stage_2)].get() + (prev_coeff - value) / 2)
+            self.stage_sliders[max(stage_1, stage_2)].get() + (prev_coeff - value) / 2 * size_coeff)
         self.stage_sliders[min(stage_1, stage_2)].set(
             100 - (value + self.stage_sliders[max(stage_1, stage_2)].get()))
 
