@@ -187,7 +187,7 @@ def get_initial_speed(
 # for stages arrangement "acceleration-linear-decceleration"
 def get_linear_stage_speed(
     target_angle: float, spins_amount: int, target_time: float,
-    accelertation_end_time: float, linear_end_time: float,
+    linear_start_time: float, linear_end_time: float,
     initial_angle: float = 0
 ) -> float:
     """
@@ -197,7 +197,7 @@ def get_linear_stage_speed(
 
     total_path = target_angle + 360 * spins_amount - initial_angle
 
-    t1 = accelertation_end_time
+    t1 = linear_start_time
     t2 = linear_end_time
     t3 = target_time
 
