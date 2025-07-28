@@ -19,6 +19,7 @@ SPIN_COEF_MAX = 10
 SPIN_COEF_MIN_NORM = 0.5
 SPIN_COEF_MAX_NORM = 1.5
 
+
 class Stages(Enum):
     ACCELERATION_STAGE = auto()
     LINEAR_STAGE = auto()
@@ -39,8 +40,8 @@ class Stage:
     def __init__(
             self, stage_type: Stages, duration: float,
             start_time: float = 0, start_speed: float = 0,
-            end_speed: float = 0, total_spin_time : float = -1
-            ) -> None:
+            end_speed: float = 0, total_spin_time: float = -1
+    ) -> None:
         self.stage_type = stage_type
 
         if stage_type == Stages.STOP:
@@ -57,7 +58,8 @@ class Stage:
         self.start_time = start_time
         self.start_speed = start_speed
         self.end_speed = end_speed
-        self.acceleration = get_acceleration(self.start_speed, self.duration, self.end_speed)
+        self.acceleration = get_acceleration(
+            self.start_speed, self.duration, self.end_speed)
 
     def get_end_time(self) -> float:
         return self.start_time + self.duration
@@ -67,20 +69,24 @@ class Stage:
 
     def update_total_time(
             self, start_time: float, total_time: float, time_coefficient: float
-            ) -> None:
+    ) -> None:
         self.time_coefficient = time_coefficient
         self.start_time = start_time
         self.duration = total_time * self.time_coefficient
-        self.acceleration = get_acceleration(self.start_speed, self.duration, self.end_speed)
+        self.acceleration = get_acceleration(
+            self.start_speed, self.duration, self.end_speed)
 
     def update_acceleration(self, start_speed: float, duration: float, end_speed: float) -> None:
         self.start_speed = start_speed
         self.duration = duration
         self.end_speed = end_speed
-        self.acceleration = get_acceleration(self.start_speed, self.duration, self.end_speed)
+        self.acceleration = get_acceleration(
+            self.start_speed, self.duration, self.end_speed)
+
 
 STOP_ID = -1
 STOP_STAGE = Stage(Stages.STOP, 0)
+
 
 class StagesController:
     def __init__(self, total_spin_time: float, stage_order: "list[Stage]" = []) -> None:
@@ -111,8 +117,9 @@ class StagesController:
     def emplace_stage(
             self, stage_type: Stages, duration: float,
             start_speed: float = 0, end_speed: float = 0
-            ) -> None:
-        stage = Stage(stage_type, duration, 0, start_speed, end_speed, self.total_spin_time)
+    ) -> None:
+        stage = Stage(stage_type, duration, 0, start_speed,
+                      end_speed, self.total_spin_time)
         self.append_stage(stage)
 
     def get_current_stage(self, cur_time: float) -> Stage:
@@ -136,8 +143,8 @@ class StagesController:
                     stage.time_coefficient
                     if stage.time_coefficient != -1
                     else stage.duration / self.total_spin_time
-                    )
                 )
+            )
             start_time = stage.get_end_time()
             self.total_stages_duration += stage.duration
         self.total_spin_time = new_total_time
@@ -152,6 +159,7 @@ class StagesController:
     def prev_stage(self, cur_time: float) -> Stage:
         self.get_current_stage(cur_time)
         return self.stage_order[self.active_stage_id - 1]
+
 
 def get_spins_amount(spins_amount_coeff: int, spin_time: float) -> int:
     """
@@ -184,12 +192,13 @@ def get_initial_speed(
 
     return initial_speed
 
-# for stages arrangement "acceleration-linear-decceleration"
+
 def get_linear_stage_speed(
     target_angle: float, spins_amount: int, target_time: float,
     linear_start_time: float, linear_end_time: float,
     initial_angle: float = 0
 ) -> float:
+    # for stages arrangement "acceleration-linear-decceleration"
     """
     Calculates wheel `initial speed` for linear movement stage from the given
     `target angle`, `amount of spins`, `spin time` and `initial angle`
@@ -201,7 +210,7 @@ def get_linear_stage_speed(
     t2 = linear_end_time
     t3 = target_time
 
-    linear_speed = total_path / ( (t1 + t2 - t3) / 2 - t1 + t3 )
+    linear_speed = total_path / ((t1 + t2 - t3) / 2 - t1 + t3)
 
     return linear_speed
 
@@ -213,8 +222,8 @@ def get_acceleration(initial_speed: float, target_time: float, final_speed: floa
     """
 
     acceleration = ((final_speed - initial_speed) / target_time
-                             if target_time > 0
-                             else 0)
+                    if target_time > 0
+                    else 0)
 
     return acceleration
 
@@ -229,7 +238,8 @@ def get_angle(
     """
 
     angle = (
-        initial_angle + initial_speed * cur_time + (acceleration * pow(cur_time, 2)) / 2
+        initial_angle + initial_speed * cur_time +
+            (acceleration * pow(cur_time, 2)) / 2
     )
 
     return angle % 360
