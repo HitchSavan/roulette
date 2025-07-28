@@ -60,7 +60,8 @@ class WheelVisualizer:
         sectors_amount = self.sectors_amount
         sector_size = 360 / sectors_amount
 
-        selected_sector = utils.angle_to_sector(self.angle, self.sectors_amount)
+        selected_sector = utils.angle_to_sector(
+            self.angle, self.sectors_amount)
 
         for i in range(sectors_amount):
             start_angle = (360 / sectors_amount) * i + self.angle + 90
@@ -146,7 +147,8 @@ class WheelVisualizer:
         if self.speed > 0:
             time = datetime.datetime.now() - self.start_time
             time = time.total_seconds()
-            self.speed = roulette.get_speed(self.initial_speed, self.acceleration, time)
+            self.speed = roulette.get_speed(
+                self.initial_speed, self.acceleration, time)
             self.angle = roulette.get_angle(
                 self.initial_speed, self.acceleration, time, self.initial_angle
             )
@@ -225,13 +227,16 @@ class WheelVisualizer:
         )
         self.spins_amount_field.pack(side=tk.LEFT)
         tk.Label(frame, text="Spin time:").pack(side=tk.LEFT)
-        tk.Entry(frame, textvariable=self.spin_time_input, width=5).pack(side=tk.LEFT)
+        tk.Entry(frame, textvariable=self.spin_time_input,
+                 width=5).pack(side=tk.LEFT)
         tk.Label(frame, text="Target angle:").pack(side=tk.LEFT)
         tk.Entry(frame, textvariable=self.target_angle_input, width=5).pack(
             side=tk.LEFT
         )
-        tk.Button(frame, text="Rand", command=self.random_target).pack(side=tk.LEFT)
-        tk.Button(frame, text="Apply", command=self.apply_settings).pack(side=tk.LEFT)
+        tk.Button(frame, text="Rand", command=self.random_target).pack(
+            side=tk.LEFT)
+        tk.Button(frame, text="Apply",
+                  command=self.apply_settings).pack(side=tk.LEFT)
 
         # self.spins_amount_field.config(state="disabled")
 

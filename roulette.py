@@ -69,7 +69,8 @@ def get_angle(
     """
 
     angle = (
-        initial_angle + initial_speed * cur_time + (acceleration * pow(cur_time, 2)) / 2
+        initial_angle + initial_speed * cur_time +
+            (acceleration * pow(cur_time, 2)) / 2
     )
 
     return angle % 360
