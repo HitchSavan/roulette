@@ -20,6 +20,8 @@ SPIN_COEF_MIN_NORM = 0.5
 SPIN_COEF_MAX_NORM = 1.5
 
 # percentage of full spin time; total sum must be not greater than 1
+
+
 class Stages(Enum):
     ACCELERATION_STAGE = 0.3
     LINEAR_STAGE = ACCELERATION_STAGE + 0.3
@@ -34,8 +36,10 @@ def get_current_stage(cur_time: float, total_time: float) -> Stages:
     else:
         return Stages.DECCELERATION_STAGE
 
+
 def get_stage_end_time(cur_stage: Stages, total_time: float) -> float:
     return total_time * cur_stage.value
+
 
 def get_stage_start_time(cur_stage: Stages, total_time: float) -> float:
     if cur_stage == Stages.LINEAR_STAGE:
@@ -44,10 +48,13 @@ def get_stage_start_time(cur_stage: Stages, total_time: float) -> float:
         return total_time * Stages.LINEAR_STAGE.value
     return 0
 
+
 def get_stage_length_time(cur_stage: Stages, total_time: float) -> float:
     return get_stage_end_time(cur_stage, total_time) - get_stage_start_time(cur_stage, total_time)
 
 # needs configuring
+
+
 def get_spins_amount(spins_amount_coeff: int, spin_time: float) -> int:
     """
     Calculates wheel `spins amount` from the given `spin time`
@@ -94,7 +101,7 @@ def get_linear_stage_speed(
     t2 = target_time * Stages.LINEAR_STAGE.value
     t3 = target_time
 
-    linear_speed = total_path / ( (t1 + t2 - t3) / 2 - t1 + t3 )
+    linear_speed = total_path / ((t1 + t2 - t3) / 2 - t1 + t3)
 
     return linear_speed
 
@@ -120,7 +127,8 @@ def get_angle(
     """
 
     angle = (
-        initial_angle + initial_speed * cur_time + (acceleration * pow(cur_time, 2)) / 2
+        initial_angle + initial_speed * cur_time +
+            (acceleration * pow(cur_time, 2)) / 2
     )
 
     return angle % 360

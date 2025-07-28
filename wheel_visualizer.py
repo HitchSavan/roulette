@@ -63,7 +63,8 @@ class WheelVisualizer:
         sectors_amount = self.sectors_amount
         sector_size = 360 / sectors_amount
 
-        selected_sector = utils.angle_to_sector(self.angle, self.sectors_amount)
+        selected_sector = utils.angle_to_sector(
+            self.angle, self.sectors_amount)
 
         for i in range(sectors_amount):
             start_angle = (360 / sectors_amount) * i + self.angle + 90
@@ -151,14 +152,16 @@ class WheelVisualizer:
         self.current_stage = roulette.get_current_stage(time, self.spin_time)
         stage_time = time
         if self.current_stage.value > roulette.Stages.ACCELERATION_STAGE.value:
-            stage_time -= roulette.get_stage_start_time(self.current_stage, self.spin_time)
+            stage_time -= roulette.get_stage_start_time(
+                self.current_stage, self.spin_time)
 
         if self.speed > 0 or self.current_stage == roulette.Stages.ACCELERATION_STAGE:
             if self.current_stage == roulette.Stages.LINEAR_STAGE and self.acceleration > 0:
                 self.initial_angle = roulette.get_angle(
                     self.initial_speed,
                     self.acceleration,
-                    roulette.get_stage_start_time(self.current_stage, self.spin_time),
+                    roulette.get_stage_start_time(
+                        self.current_stage, self.spin_time),
                     self.initial_angle
                 )
                 self.acceleration = 0
@@ -168,7 +171,8 @@ class WheelVisualizer:
                 self.initial_angle = roulette.get_angle(
                     self.initial_speed,
                     self.acceleration,
-                    roulette.get_stage_length_time(roulette.Stages.LINEAR_STAGE, self.spin_time),
+                    roulette.get_stage_length_time(
+                        roulette.Stages.LINEAR_STAGE, self.spin_time),
                     self.initial_angle
                 )
                 self.acceleration = roulette.get_acceleration(
@@ -179,7 +183,8 @@ class WheelVisualizer:
                     )
                 )
 
-            self.speed = roulette.get_speed(self.initial_speed, self.acceleration, stage_time)
+            self.speed = roulette.get_speed(
+                self.initial_speed, self.acceleration, stage_time)
             self.angle = roulette.get_angle(
                 self.initial_speed, self.acceleration, stage_time, self.initial_angle
             )
@@ -202,7 +207,8 @@ class WheelVisualizer:
             )
             self.acceleration = roulette.get_acceleration(
                 self.initial_speed,
-                roulette.get_stage_end_time(roulette.Stages.ACCELERATION_STAGE, self.spin_time),
+                roulette.get_stage_end_time(
+                    roulette.Stages.ACCELERATION_STAGE, self.spin_time),
                 self.linear_speed
             )
 
@@ -260,13 +266,16 @@ class WheelVisualizer:
         )
         self.spins_amount_field.pack(side=tk.LEFT)
         tk.Label(frame, text="Spin time:").pack(side=tk.LEFT)
-        tk.Entry(frame, textvariable=self.spin_time_input, width=5).pack(side=tk.LEFT)
+        tk.Entry(frame, textvariable=self.spin_time_input,
+                 width=5).pack(side=tk.LEFT)
         tk.Label(frame, text="Target angle:").pack(side=tk.LEFT)
         tk.Entry(frame, textvariable=self.target_angle_input, width=5).pack(
             side=tk.LEFT
         )
-        tk.Button(frame, text="Rand", command=self.random_target).pack(side=tk.LEFT)
-        tk.Button(frame, text="Apply", command=self.apply_settings).pack(side=tk.LEFT)
+        tk.Button(frame, text="Rand", command=self.random_target).pack(
+            side=tk.LEFT)
+        tk.Button(frame, text="Apply",
+                  command=self.apply_settings).pack(side=tk.LEFT)
 
         # self.spins_amount_field.config(state="disabled")
 
