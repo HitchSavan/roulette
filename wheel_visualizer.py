@@ -43,9 +43,6 @@ class WheelVisualizer:
         self.current_stage = roulette.STOP_STAGE
 
         self.stages_controller.emplace_stage(
-            roulette.Stages.ACCELERATION_STAGE,
-            self.spin_time * 0)
-        self.stages_controller.emplace_stage(
             roulette.Stages.DECCELERATION_STAGE,
             self.spin_time * 0.3)
         self.stages_controller.emplace_stage(
@@ -303,7 +300,7 @@ class WheelVisualizer:
 
     def update_duration(self, stage_type: roulette.Stages):
         stage_set = set([
-            roulette.Stages.ACCELERATION_STAGE,
+            # roulette.Stages.ACCELERATION_STAGE,
             roulette.Stages.LINEAR_STAGE,
             roulette.Stages.DECCELERATION_STAGE
         ])
@@ -316,7 +313,8 @@ class WheelVisualizer:
                       .time_coefficient) * 100
 
         stage_1 = stage_set.pop()
-        stage_2 = stage_set.pop()
+        stage_2 = stage_1
+        # stage_2 = stage_set.pop()
 
         stage_1, stage_2 = max(stage_1, stage_2), min(stage_1, stage_2)
 
@@ -396,7 +394,7 @@ class WheelVisualizer:
             "<ButtonRelease-1>", self.update_decc_duration
         )
         self.stage_sliders = {
-            roulette.Stages.ACCELERATION_STAGE: self.acceleration_duration_percentage_slider,
+            # roulette.Stages.ACCELERATION_STAGE: self.acceleration_duration_percentage_slider,
             roulette.Stages.LINEAR_STAGE: self.linear_duration_percentage_slider,
             roulette.Stages.DECCELERATION_STAGE: self.decceleration_duration_percentage_slider
         }
