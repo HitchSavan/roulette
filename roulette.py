@@ -10,7 +10,7 @@ Full wheel life cycle (from start to stop) consists of three stages:
 3. Decceleration stage - initial speed equals speed from stage 2,
     acceleration is negative, wheel spins until full stop.
 """
-from enum import Enum, auto
+from enum import Enum
 
 import utils
 
@@ -21,10 +21,10 @@ SPIN_COEF_MAX_NORM = 1.5
 
 
 class Stages(Enum):
-    ACCELERATION_STAGE = auto()
-    LINEAR_STAGE = auto()
-    DECCELERATION_STAGE = auto()
-    STOP = auto()
+    ACCELERATION_STAGE = 1
+    LINEAR_STAGE = 0
+    DECCELERATION_STAGE = -1
+    STOP = 2
 
     def __eq__(self, r) -> bool:
         return self.value == r.value
@@ -152,13 +152,15 @@ class StagesController:
     def next_stage(self, cur_time: float) -> Stage:
         self.get_current_stage(cur_time)
         next_id = self.active_stage_id + 1
-        if next_id == len(self.stage_order):
-            return STOP_STAGE
-        return self.stage_order[next_id]
+        return (self.stage_order[next_id]
+                if next_id != len(self.stage_order)
+                else STOP_STAGE)
 
     def prev_stage(self, cur_time: float) -> Stage:
         self.get_current_stage(cur_time)
-        return self.stage_order[self.active_stage_id - 1]
+        return (self.stage_order[self.active_stage_id - 1]
+                if self.active_stage_id != 0
+                else STOP_STAGE)
 
 
 def get_spins_amount(spins_amount_coeff: int, spin_time: float) -> int:
@@ -221,9 +223,11 @@ def get_acceleration(initial_speed: float, target_time: float, final_speed: floa
     `target time` and `final speed`
     """
 
-    acceleration = ((final_speed - initial_speed) / target_time
-                    if target_time > 0
-                    else 0)
+    acceleration = (
+        (final_speed - initial_speed) / target_time
+        if target_time > 0
+        else 0
+    )
 
     return acceleration
 

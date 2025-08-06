@@ -174,49 +174,26 @@ class WheelVisualizer:
     def update(self):
         time = datetime.datetime.now() - self.start_time
         time = time.total_seconds()
-        self.current_stage = self.stages_controller.get_current_stage(time)
 
-        if self.current_stage.stage_type == roulette.Stages.STOP:
-            return
+        if self.current_stage != self.stages_controller.get_current_stage(time):
+            self.current_stage = self.stages_controller.get_current_stage(time)
+            if self.current_stage.stage_type == roulette.Stages.STOP:
+                return
+
+            self.initial_angle = roulette.get_angle(
+                self.initial_speed,
+                self.acceleration,
+                (self.stages_controller.prev_stage(time).duration
+                 if self.stages_controller.prev_stage(time) != roulette.STOP_STAGE
+                 else self.current_stage.start_time),
+                self.initial_angle
+            )
+            self.acceleration = self.current_stage.acceleration
+            self.initial_speed = self.current_stage.start_speed
 
         stage_time = time
         if self.current_stage.start_time > 0:
             stage_time -= self.current_stage.start_time
-
-        # if self.speed > 0 or self.current_stage.stage_type == roulette.Stages.ACCELERATION_STAGE:
-        if (self.current_stage.stage_type == roulette.Stages.LINEAR_STAGE and
-                not self.linear_stage_activated):
-            self.linear_stage_activated = True
-            self.decceleration_stage_activated = False
-            self.initial_angle = roulette.get_angle(
-                self.initial_speed,
-                self.acceleration,
-                self.current_stage.start_time,
-                self.initial_angle
-            )
-            self.acceleration = 0
-            self.initial_speed = self.linear_speed
-        elif (self.current_stage.stage_type == roulette.Stages.DECCELERATION_STAGE and
-              not self.decceleration_stage_activated and self.current_stage.start_time > 0):
-            self.decceleration_stage_activated = True
-            if not self.linear_stage_activated:
-                self.initial_angle = roulette.get_angle(
-                    self.initial_speed,
-                    self.acceleration,
-                    self.stages_controller.stages_by_type[
-                        roulette.Stages.LINEAR_STAGE].start_time,
-                    self.initial_angle
-                )
-            self.linear_stage_activated = False
-            self.initial_speed = self.linear_speed
-            self.initial_angle = roulette.get_angle(
-                self.initial_speed,
-                self.acceleration,
-                self.stages_controller.prev_stage(time).duration,
-                self.initial_angle
-            )
-            self.acceleration = roulette.get_acceleration(self.linear_speed,
-                                                          self.current_stage.duration)
 
         self.speed = roulette.get_speed(
             self.initial_speed, self.acceleration, stage_time)
@@ -232,31 +209,39 @@ class WheelVisualizer:
     def start(self):
         self.stop()
         self.apply_settings()
-        self.linear_stage_activated = False
-        self.decceleration_stage_activated = False
         if self.speed <= 0:
             self.start_time = datetime.datetime.now()
 
-            self.initial_speed = 0
-            self.linear_speed = roulette.get_linear_stage_speed(
-                self.target_angle, self.spins_amount, self.spin_time,
-                self.stages_controller.stages_by_type[
-                    roulette.Stages.LINEAR_STAGE].start_time,
-                self.stages_controller.stages_by_type[
-                    roulette.Stages.LINEAR_STAGE].get_end_time(),
-                self.initial_angle
-            )
+            acceleration_sign = self.stages_controller.stage_order[0].stage_type.value
 
-            self.initial_speed = self.linear_speed * 2
-            self.acceleration = roulette.get_acceleration(
+            self.initial_speed = roulette.get_initial_speed(
+                self.target_angle, self.spins_amount, self.spin_time, self.initial_angle)
+            self.linear_speed = self.initial_speed
+
+            # ???? stupid
+            if acceleration_sign > 0:
+                self.initial_speed /= 2
+            elif acceleration_sign < 0:
+                self.linear_speed /= 2
+
+            # order for 3 stages with second being linear
+            self.stages_controller.stage_order[0].update_acceleration(
                 self.initial_speed,
-                self.stages_controller.stages_by_type[
-                    roulette.Stages.LINEAR_STAGE].start_time,
+                self.stages_controller.stage_order[0].duration,
                 self.linear_speed
             )
-            # self.stages_controller.stages_by_type[
-            #     roulette.Stages.ACCELERATION_STAGE].acceleration = self.acceleration
+            self.stages_controller.stage_order[1].update_acceleration(
+                self.linear_speed,
+                self.stages_controller.stage_order[1].duration,
+                self.linear_speed
+            )
+            self.stages_controller.stage_order[2].update_acceleration(
+                self.linear_speed,
+                self.stages_controller.stage_order[2].duration,
+                0
+            )
 
+            self.acceleration = self.stages_controller.stage_order[0].acceleration
             self.speed = self.initial_speed
             self.update()
 
