@@ -83,6 +83,9 @@ class Stage:
         self.acceleration = get_acceleration(
             self.start_speed, self.duration, self.end_speed)
 
+    def get_total_path(self):
+        return self.start_speed * self.duration + self.acceleration * pow(self.duration, 2) / 2
+
 
 STOP_ID = -1
 STOP_STAGE = Stage(Stages.STOP, 0)
@@ -147,6 +150,12 @@ class StagesController:
             )
             start_time = stage.get_end_time()
             self.total_stages_duration += stage.duration
+        if self.total_stages_duration != new_total_time:
+            self.stage_order[-1].duration += new_total_time - \
+                self.total_stages_duration
+            print('time update mismatch')
+            self.total_stages_duration = new_total_time
+
         self.total_spin_time = new_total_time
 
     def next_stage(self, cur_time: float) -> Stage:
@@ -182,7 +191,56 @@ def get_spins_amount(spins_amount_coeff: int, spin_time: float) -> int:
 
 
 def get_initial_speed(
-    target_angle: float, spins_amount: int, target_time: float, initial_angle: float = 0
+    target_angle: float, spins_amount: int, first_stage_duration: float,
+    second_stage_duration: float, third_stage_duration: float,
+    first_stage_acceleration: float, second_stage_acceleration: float,
+    third_stage_acceleration: float, initial_angle: float = 0
+) -> float:
+    """
+    Calculates wheel `initial speed` from the given parameters
+    """
+
+    total_path = target_angle + 360 * spins_amount - initial_angle
+
+    t1 = first_stage_duration
+    t2 = second_stage_duration
+    t3 = third_stage_duration
+
+    a1 = first_stage_acceleration
+    a2 = second_stage_acceleration
+    a3 = third_stage_acceleration
+
+    initial_speed = (total_path - (
+        a1*pow(t1, 2)/2 +
+        a2*pow(t2, 2)/2 +
+        a3*pow(t3, 2)/2 +
+        a1*t1*t2 +
+        a1*t1*t3 +
+        a2*t2*t3)
+    ) / (t1 + t2 + t3)
+
+    v2 = initial_speed + a1*t1
+    v3 = v2 + a2*t2
+
+    print(f'''new 
+                  initial 1st phase speed: {initial_speed}
+                  1st phase duration: {t1}
+                  1st phase accel: {a1}
+
+                  initial 2nd phase speed: {v2}
+                  2nd phase duration: {t2}
+                  2nd phase accel: {a2}
+
+                  initial 3rd phase speed: {v3}
+                  3rd phase duration: {t3}
+                  3rd phase accel: {a3}''')
+
+    return initial_speed
+
+
+def get_simple_initial_speed(
+    target_angle: float, spins_amount: int,
+    target_time: float, initial_angle: float = 0
 ) -> float:
     """
     Calculates wheel `initial speed` from the given `target

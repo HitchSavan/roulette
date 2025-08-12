@@ -1,7 +1,7 @@
 """
 Roulette wheel visualization module
 
-Draws a wheel with the controls for simulating and 
+Draws a wheel with the controls for simulating and
 adjusting roulette parameters
 """
 
@@ -51,9 +51,6 @@ class WheelVisualizer:
         self.stages_controller.emplace_stage(
             roulette.Stages.DECCELERATION_STAGE,
             self.spin_time - self.stages_controller.total_stages_duration)
-
-        self.linear_stage_activated = False
-        self.decceleration_stage_activated = False
 
         self.start_time = datetime.datetime.now()
 
@@ -165,7 +162,7 @@ class WheelVisualizer:
             200,
             110,
             text=f"""Current stage: {
-                self.stages_controller.stage_order[self.stages_controller.active_stage_id].stage_type.name
+                self.current_stage.stage_type.name
                 }""",
             font=("Arial", 14, "bold"),
             tags="stage_text",
@@ -176,10 +173,15 @@ class WheelVisualizer:
         time = time.total_seconds()
 
         if self.current_stage != self.stages_controller.get_current_stage(time):
+            print(
+                f'stage switch {self.current_stage.stage_type.name} -> {self.stages_controller.get_current_stage(time).stage_type.name}',
+                f'time {time}',
+                f'speed {self.speed}',
+                f'acceleration {self.acceleration}', sep='\n'
+            )
             self.current_stage = self.stages_controller.get_current_stage(time)
             if self.current_stage.stage_type == roulette.Stages.STOP:
                 return
-
             self.initial_angle = roulette.get_angle(
                 self.initial_speed,
                 self.acceleration,
@@ -210,11 +212,9 @@ class WheelVisualizer:
         if self.speed <= 0:
             self.start_time = datetime.datetime.now()
 
+            self.linear_speed = 400
+            self.initial_speed = self.linear_speed
             acceleration_sign = self.stages_controller.stage_order[0].stage_type.value
-
-            self.initial_speed = roulette.get_initial_speed(
-                self.target_angle, self.spins_amount, self.spin_time, self.initial_angle)
-            self.linear_speed = self.initial_speed
 
             # ???? stupid
             if acceleration_sign > 0:
@@ -239,10 +239,65 @@ class WheelVisualizer:
                 0
             )
 
+            self.initial_speed = roulette.get_initial_speed(
+                self.target_angle, self.spins_amount,
+                self.stages_controller.stage_order[0].duration,
+                self.stages_controller.stage_order[1].duration,
+                self.stages_controller.stage_order[2].duration,
+                self.stages_controller.stage_order[0].acceleration,
+                self.stages_controller.stage_order[1].acceleration,
+                self.stages_controller.stage_order[2].acceleration,
+                self.initial_angle)
+
+            self.stages_controller.stage_order[0].start_speed = self.initial_speed
+            self.stages_controller.stage_order[1].start_speed = self.initial_speed + \
+                self.stages_controller.stage_order[0].acceleration * \
+                self.stages_controller.stage_order[0].duration
+            self.stages_controller.stage_order[2].start_speed = self.stages_controller.stage_order[1].start_speed + \
+                self.stages_controller.stage_order[1].acceleration * \
+                self.stages_controller.stage_order[1].duration
+
             self.current_stage = self.stages_controller.stage_order[0]
 
             self.acceleration = self.current_stage.acceleration
             self.speed = self.initial_speed
+
+            print(f'''
+                  initial 1st phase speed: {self.stages_controller.stage_order[0].start_speed}
+                  1st phase duration: {self.stages_controller.stage_order[0].duration}
+                  1st phase accel: {self.stages_controller.stage_order[0].acceleration}
+
+                  initial 2nd phase speed: {self.stages_controller.stage_order[1].start_speed}
+                  2nd phase duration: {self.stages_controller.stage_order[1].duration}
+                  2nd phase accel: {self.stages_controller.stage_order[1].acceleration}
+
+                  initial 3rd phase speed: {self.stages_controller.stage_order[2].start_speed}
+                  3rd phase duration: {self.stages_controller.stage_order[2].duration}
+                  3rd phase accel: {self.stages_controller.stage_order[2].acceleration}
+
+                  total spin path: {self.stages_controller.stage_order[0].get_total_path()+
+                                    self.stages_controller.stage_order[1].get_total_path()+
+                                    self.stages_controller.stage_order[2].get_total_path()}
+                  total 1st phase path: {self.stages_controller.stage_order[0].get_total_path()}
+                  total 2nd phase path: {self.stages_controller.stage_order[1].get_total_path()}
+                  total 3rd phase path: {self.stages_controller.stage_order[2].get_total_path()}
+
+                  relative spin path: {(self.stages_controller.stage_order[0].get_total_path() +
+                                        self.stages_controller.stage_order[1].get_total_path() +
+                                        self.stages_controller.stage_order[2].get_total_path() ) % 360}
+                  relative 1st phase path: {self.stages_controller.stage_order[0].get_total_path() % 360}
+                  relative 2nd phase path: {self.stages_controller.stage_order[1].get_total_path() % 360}
+                  relative 3rd phase path: {self.stages_controller.stage_order[2].get_total_path() % 360}
+                  
+                  total duration: {self.stages_controller.stage_order[0].duration +
+                                   self.stages_controller.stage_order[1].duration +
+                                   self.stages_controller.stage_order[2].duration}
+
+                  target angle: {self.target_angle}
+                  target total path: {self.target_angle + 360 * self.spins_amount - self.initial_angle}
+                  target time: {self.spin_time}
+            ''')
+
             self.update()
 
     def stop(self):
