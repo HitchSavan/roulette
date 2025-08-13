@@ -11,6 +11,7 @@ Full wheel life cycle (from start to stop) consists of three stages:
     acceleration is negative, wheel spins until full stop.
 """
 from enum import Enum
+import logging
 
 import utils
 
@@ -18,6 +19,12 @@ SPIN_COEF_MIN = 1
 SPIN_COEF_MAX = 10
 SPIN_COEF_MIN_NORM = 0.5
 SPIN_COEF_MAX_NORM = 1.5
+
+logging.basicConfig(filename="debug.log",
+                    filemode='a',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=logging.DEBUG)
 
 
 class Stages(Enum):
@@ -47,6 +54,7 @@ class Stage:
         if stage_type == Stages.STOP:
             return
         if duration < 0:
+            logging.error("negative stage duration")
             raise ValueError("Stage duration cannot be negative")
 
         self.time_coefficient = -1
@@ -76,10 +84,14 @@ class Stage:
         self.acceleration = get_acceleration(
             self.start_speed, self.duration, self.end_speed)
 
-    def update_acceleration(self, start_speed: float, duration: float, end_speed: float) -> None:
-        self.start_speed = start_speed
-        self.duration = duration
-        self.end_speed = end_speed
+    def update_acceleration(self, start_speed: float = -1,
+                            duration: float = -1, end_speed: float = -1) -> None:
+        if start_speed != -1:
+            self.start_speed = start_speed
+        if duration != -1:
+            self.duration = duration
+        if end_speed != -1:
+            self.end_speed = end_speed
         self.acceleration = get_acceleration(
             self.start_speed, self.duration, self.end_speed)
 
@@ -142,18 +154,17 @@ class StagesController:
         for stage in self.stage_order:
             stage.update_total_time(
                 start_time, new_total_time,
-                (
-                    stage.time_coefficient
-                    if stage.time_coefficient != -1
-                    else stage.duration / self.total_spin_time
-                )
+                (stage.time_coefficient
+                 if stage.time_coefficient != -1
+                 else stage.duration / self.total_spin_time)
             )
             start_time = stage.get_end_time()
             self.total_stages_duration += stage.duration
         if self.total_stages_duration != new_total_time:
             self.stage_order[-1].duration += new_total_time - \
                 self.total_stages_duration
-            print('time update mismatch')
+            logging.warning("total stages time updating mismatch")
+            print('-----------=============time update mismatch=============-----------')
             self.total_stages_duration = new_total_time
 
         self.total_spin_time = new_total_time
@@ -191,24 +202,27 @@ def get_spins_amount(spins_amount_coeff: int, spin_time: float) -> int:
 
 
 def get_initial_speed(
-    target_angle: float, spins_amount: int, first_stage_duration: float,
-    second_stage_duration: float, third_stage_duration: float,
-    first_stage_acceleration: float, second_stage_acceleration: float,
-    third_stage_acceleration: float, initial_angle: float = 0
+    target_angle: float, spins_amount: int,
+    stages_list: 'list[Stage]', initial_angle: float = 0
 ) -> float:
     """
-    Calculates wheel `initial speed` from the given parameters
+    Calculates wheel `initial speed` from the `target angle`,
+    `spins amount` and `stages list`
     """
+
+    if len(stages_list) != 3:
+        raise ValueError(
+            f'Stages amount must be 3 ({len(stages_list)} is given)')
 
     total_path = target_angle + 360 * spins_amount - initial_angle
 
-    t1 = first_stage_duration
-    t2 = second_stage_duration
-    t3 = third_stage_duration
+    t1 = stages_list[0].duration
+    t2 = stages_list[1].duration
+    t3 = stages_list[2].duration
 
-    a1 = first_stage_acceleration
-    a2 = second_stage_acceleration
-    a3 = third_stage_acceleration
+    a1 = stages_list[0].acceleration
+    a2 = stages_list[1].acceleration
+    a3 = stages_list[2].acceleration
 
     initial_speed = (total_path - (
         a1*pow(t1, 2)/2 +
@@ -222,18 +236,33 @@ def get_initial_speed(
     v2 = initial_speed + a1*t1
     v3 = v2 + a2*t2
 
-    print(f'''new 
-                  initial 1st phase speed: {initial_speed}
-                  1st phase duration: {t1}
-                  1st phase accel: {a1}
+    logging.debug('''new
+                  total path: %f
+                  calc total path: %f
 
-                  initial 2nd phase speed: {v2}
-                  2nd phase duration: {t2}
-                  2nd phase accel: {a2}
+                  initial 1st phase speed: %f
+                  1st phase duration: %f
+                  1st phase accel: %f
+                  1st phase total path: %f
 
-                  initial 3rd phase speed: {v3}
-                  3rd phase duration: {t3}
-                  3rd phase accel: {a3}''')
+                  initial 2nd phase speed: %f
+                  2nd phase duration: %f
+                  2nd phase accel: %f
+                  2nd phase total path: %f
+
+                  initial 3rd phase speed: %f
+                  3rd phase duration: %f
+                  3rd phase accel: %f
+                  3rd phase total path: %f
+--------------''', total_path,
+                  initial_speed * t1 + a1 * pow(t1, 2) / 2 +
+                  v2 * t2 + a2 * pow(t2, 2) / 2 +
+                  v3 * t3 + a3 * pow(t3, 2) / 2,
+                  initial_speed, t1, a1,
+                  initial_speed * t1 + a1 * pow(t1, 2) / 2,
+                  v2, t2, a2, v2 * t2 + a2 * pow(t2, 2) / 2,
+                  v3, t3, a3, v3 * t3 + a3 * pow(t3, 2) / 2
+                  )
 
     return initial_speed
 

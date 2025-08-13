@@ -130,6 +130,18 @@ class WheelVisualizer:
             tags="sector_text",
         )
 
+        self.canvas.delete("time_text")
+        self.canvas.create_text(
+            200,
+            10,
+            text=f"""Time left: {
+                round(self.spin_time - 
+                (datetime.datetime.now() - self.start_time).total_seconds(),
+                    1)}""",
+            font=("Arial", 14, "bold"),
+            tags="time_text",
+        )
+
         self.canvas.delete("speed_text")
         self.canvas.create_text(
             200,
@@ -172,15 +184,20 @@ class WheelVisualizer:
         time = datetime.datetime.now() - self.start_time
         time = time.total_seconds()
 
-        if self.current_stage != self.stages_controller.get_current_stage(time):
-            print(
-                f'stage switch {self.current_stage.stage_type.name} -> {self.stages_controller.get_current_stage(time).stage_type.name}',
-                f'time {time}',
-                f'speed {self.speed}',
-                f'acceleration {self.acceleration}', sep='\n'
+        if (self.current_stage !=
+                self.stages_controller.get_current_stage(time)):
+            roulette.logging.debug(
+                f'''stage switch {
+                    self.current_stage.stage_type.name} -> {
+                        self.stages_controller.get_current_stage(time).stage_type.name}
+                    time {time}
+                    speed {self.speed}
+                    acceleration {self.acceleration}'''
             )
             self.current_stage = self.stages_controller.get_current_stage(time)
-            if self.current_stage.stage_type == roulette.Stages.STOP:
+            if self.speed <= 0 or self.current_stage == roulette.STOP_STAGE:
+                self.draw_wheel()
+                # self.stop()
                 return
             self.initial_angle = roulette.get_angle(
                 self.initial_speed,
@@ -212,7 +229,8 @@ class WheelVisualizer:
         if self.speed <= 0:
             self.start_time = datetime.datetime.now()
 
-            self.linear_speed = 400
+            self.linear_speed = roulette.get_simple_initial_speed(
+                self.target_angle, self.spins_amount, self.spin_time, self.initial_angle)
             self.initial_speed = self.linear_speed
             acceleration_sign = self.stages_controller.stage_order[0].stage_type.value
 
@@ -222,47 +240,42 @@ class WheelVisualizer:
             elif acceleration_sign < 0:
                 self.linear_speed /= 2
 
+            self.stages_controller.stage_order[0].start_speed = self.initial_speed
+            self.stages_controller.stage_order[0].end_speed = self.linear_speed
+
+            self.stages_controller.stage_order[1].start_speed = self.linear_speed
+            self.stages_controller.stage_order[1].acceleration = 0
+            self.stages_controller.stage_order[1].end_speed = self.linear_speed
+
+            self.stages_controller.stage_order[2].start_speed = self.linear_speed
+            self.stages_controller.stage_order[2].end_speed = 0
+
             # order for 3 stages with second being linear
-            self.stages_controller.stage_order[0].update_acceleration(
-                self.initial_speed,
-                self.stages_controller.stage_order[0].duration,
-                self.linear_speed
-            )
-            self.stages_controller.stage_order[1].update_acceleration(
-                self.linear_speed,
-                self.stages_controller.stage_order[1].duration,
-                self.linear_speed
-            )
-            self.stages_controller.stage_order[2].update_acceleration(
-                self.linear_speed,
-                self.stages_controller.stage_order[2].duration,
-                0
-            )
+            for stage in self.stages_controller.stage_order:
+                if stage.stage_type != roulette.Stages.LINEAR_STAGE:
+                    stage.update_acceleration()
 
             self.initial_speed = roulette.get_initial_speed(
                 self.target_angle, self.spins_amount,
-                self.stages_controller.stage_order[0].duration,
-                self.stages_controller.stage_order[1].duration,
-                self.stages_controller.stage_order[2].duration,
-                self.stages_controller.stage_order[0].acceleration,
-                self.stages_controller.stage_order[1].acceleration,
-                self.stages_controller.stage_order[2].acceleration,
+                self.stages_controller.stage_order,
                 self.initial_angle)
 
-            self.stages_controller.stage_order[0].start_speed = self.initial_speed
-            self.stages_controller.stage_order[1].start_speed = self.initial_speed + \
-                self.stages_controller.stage_order[0].acceleration * \
-                self.stages_controller.stage_order[0].duration
-            self.stages_controller.stage_order[2].start_speed = self.stages_controller.stage_order[1].start_speed + \
-                self.stages_controller.stage_order[1].acceleration * \
-                self.stages_controller.stage_order[1].duration
+            for stage_no, stage in enumerate(self.stages_controller.stage_order):
+                stage.start_speed = (
+                    (self.stages_controller.stage_order[stage_no-1].start_speed)
+                    if stage_no > 0
+                    else self.initial_speed) + \
+                    ((self.stages_controller.stage_order[stage_no-1].acceleration *
+                      self.stages_controller.stage_order[stage_no-1].duration)
+                     if stage_no > 0
+                     else 0)
 
             self.current_stage = self.stages_controller.stage_order[0]
 
             self.acceleration = self.current_stage.acceleration
             self.speed = self.initial_speed
 
-            print(f'''
+            roulette.logging.debug(f'''
                   initial 1st phase speed: {self.stages_controller.stage_order[0].start_speed}
                   1st phase duration: {self.stages_controller.stage_order[0].duration}
                   1st phase accel: {self.stages_controller.stage_order[0].acceleration}
@@ -415,28 +428,28 @@ class WheelVisualizer:
         self.spin_coeff_slider = tk.Scale(
             from_=1, to=10, orient=tk.HORIZONTAL, command=self.update_spin_coeff
         )
-        self.acceleration_duration_percentage_slider = tk.Scale(
-            self.root, from_=0, to=100, orient=tk.HORIZONTAL
-        )
-        self.acceleration_duration_percentage_slider.bind(
-            "<ButtonRelease-1>", self.update_acc_duration
-        )
-        self.linear_duration_percentage_slider = tk.Scale(
-            self.root, from_=0, to=100, orient=tk.HORIZONTAL
-        )
-        self.linear_duration_percentage_slider.bind(
-            "<ButtonRelease-1>", self.update_lin_duration
-        )
-        self.decceleration_duration_percentage_slider = tk.Scale(
-            self.root, from_=0, to=100, orient=tk.HORIZONTAL
-        )
-        self.decceleration_duration_percentage_slider.bind(
-            "<ButtonRelease-1>", self.update_decc_duration
-        )
+        # self.acceleration_duration_percentage_slider = tk.Scale(
+        #     self.root, from_=0, to=100, orient=tk.HORIZONTAL
+        # )
+        # self.acceleration_duration_percentage_slider.bind(
+        #     "<ButtonRelease-1>", self.update_acc_duration
+        # )
+        # self.linear_duration_percentage_slider = tk.Scale(
+        #     self.root, from_=0, to=100, orient=tk.HORIZONTAL
+        # )
+        # self.linear_duration_percentage_slider.bind(
+        #     "<ButtonRelease-1>", self.update_lin_duration
+        # )
+        # self.decceleration_duration_percentage_slider = tk.Scale(
+        #     self.root, from_=0, to=100, orient=tk.HORIZONTAL
+        # )
+        # self.decceleration_duration_percentage_slider.bind(
+        #     "<ButtonRelease-1>", self.update_decc_duration
+        # )
         self.stage_sliders = {
-            # roulette.Stages.ACCELERATION_STAGE: self.acceleration_duration_percentage_slider,
-            roulette.Stages.LINEAR_STAGE: self.linear_duration_percentage_slider,
-            roulette.Stages.DECCELERATION_STAGE: self.decceleration_duration_percentage_slider
+            # # roulette.Stages.ACCELERATION_STAGE: self.acceleration_duration_percentage_slider,
+            # roulette.Stages.LINEAR_STAGE: self.linear_duration_percentage_slider,
+            # roulette.Stages.DECCELERATION_STAGE: self.decceleration_duration_percentage_slider
         }
         self.angle_slider.pack(fill=tk.X)
         self.spin_coeff_slider.pack(fill=tk.X)
