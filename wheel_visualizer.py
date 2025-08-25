@@ -202,6 +202,7 @@ class WheelVisualizer:
             self.current_stage = self.stages_controller.get_current_stage(time)
             if self.speed <= 0 or self.current_stage == roulette.STOP_STAGE:
                 self.draw_wheel()
+                roulette.logging.debug('--------spin end--------')
                 # self.stop()
                 return
             self.initial_angle = roulette.get_angle(
@@ -319,6 +320,7 @@ class WheelVisualizer:
             self.update()
 
     def stop(self):
+        roulette.logging.debug('--------spin start--------')
         self.speed = 0
         self.draw_wheel()
         self.angle_slider.set(self.angle)

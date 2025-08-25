@@ -311,7 +311,23 @@ def get_acceleration(initial_speed: float, target_time: float, final_speed: floa
     """
 
     acceleration = (
-        (final_speed - initial_speed) / target_time
+        ((final_speed - initial_speed) / target_time)
+        if target_time > 0
+        else 0
+    )
+
+    return acceleration
+
+
+def get_acceleration_from_path(
+        initial_speed: float, target_time: float, target_path: float) -> float:
+    """
+    Calculates wheel acceleration from the given `initial speed`,
+    `target time` and `target_path`
+    """
+
+    acceleration = (
+        ((target_path - initial_speed * target_time) * 2 / pow(target_time, 2))
         if target_time > 0
         else 0
     )
