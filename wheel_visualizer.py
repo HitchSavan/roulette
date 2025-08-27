@@ -205,12 +205,8 @@ class WheelVisualizer:
                 roulette.logging.debug('--------spin end--------')
                 # self.stop()
                 return
-            self.initial_angle = roulette.get_angle(
-                self.initial_speed,
-                self.acceleration,
-                self.stages_controller.prev_stage(time).duration,
-                self.initial_angle
-            )
+
+            self.initial_angle = self.current_stage.initial_angle
             self.acceleration = self.current_stage.acceleration
             self.initial_speed = self.current_stage.start_speed
 
@@ -232,92 +228,94 @@ class WheelVisualizer:
     def start(self):
         self.stop()
         self.apply_settings()
-        if self.speed <= 0:
-            self.start_time = datetime.datetime.now()
 
-            self.linear_speed = roulette.get_simple_initial_speed(
-                self.target_angle, self.spins_amount, self.spin_time, self.initial_angle)
-            self.initial_speed = self.linear_speed
-            acceleration_sign = self.stages_controller.stage_order[0].stage_type.value
+        self.start_time = datetime.datetime.now()
 
-            # ???? stupid
-            if acceleration_sign > 0:
-                self.initial_speed /= 2
-            elif acceleration_sign < 0:
-                self.linear_speed /= 2
+        self.linear_speed = roulette.get_simple_initial_speed(
+            self.target_angle, self.spins_amount, self.spin_time, self.initial_angle)
+        self.initial_speed = self.linear_speed
+        acceleration_sign = self.stages_controller.stage_order[0].stage_type.value
 
-            self.stages_controller.stage_order[0].start_speed = self.initial_speed
-            self.stages_controller.stage_order[0].end_speed = self.linear_speed
+        # ???? stupid
+        if acceleration_sign > 0:
+            self.initial_speed /= 2
+        elif acceleration_sign < 0:
+            self.linear_speed /= 2
 
-            self.stages_controller.stage_order[1].start_speed = self.linear_speed
-            self.stages_controller.stage_order[1].acceleration = 0
-            self.stages_controller.stage_order[1].end_speed = self.linear_speed
+        self.stages_controller.stage_order[0].start_speed = self.initial_speed
+        self.stages_controller.stage_order[0].end_speed = self.linear_speed
 
-            self.stages_controller.stage_order[2].start_speed = self.linear_speed
-            self.stages_controller.stage_order[2].end_speed = 0
+        self.stages_controller.stage_order[1].start_speed = self.linear_speed
+        self.stages_controller.stage_order[1].acceleration = 0
+        self.stages_controller.stage_order[1].end_speed = self.linear_speed
 
-            # order for 3 stages with second being linear
-            for stage in self.stages_controller.stage_order:
-                if stage.stage_type != roulette.Stages.LINEAR_STAGE:
-                    stage.update_acceleration()
+        self.stages_controller.stage_order[2].start_speed = self.linear_speed
+        self.stages_controller.stage_order[2].end_speed = 0
 
-            self.initial_speed = roulette.get_initial_speed(
-                self.target_angle, self.spins_amount,
-                self.stages_controller.stage_order,
-                self.initial_angle)
+        # order for 3 stages with second being linear
+        for stage in self.stages_controller.stage_order:
+            if stage.stage_type != roulette.Stages.LINEAR_STAGE:
+                stage.update_acceleration()
 
-            for stage_no, stage in enumerate(self.stages_controller.stage_order):
-                stage.start_speed = (
-                    (self.stages_controller.stage_order[stage_no-1].start_speed)
+        self.initial_speed = roulette.get_initial_speed(
+            self.target_angle, self.spins_amount,
+            self.stages_controller.stage_order,
+            self.initial_angle)
+
+        for stage_no, stage in enumerate(self.stages_controller.stage_order):
+            stage.start_speed = (
+                (self.stages_controller.stage_order[stage_no-1].start_speed)
+                if stage_no > 0
+                else self.initial_speed) + \
+                ((self.stages_controller.stage_order[stage_no-1].acceleration *
+                    self.stages_controller.stage_order[stage_no-1].duration)
                     if stage_no > 0
-                    else self.initial_speed) + \
-                    ((self.stages_controller.stage_order[stage_no-1].acceleration *
-                      self.stages_controller.stage_order[stage_no-1].duration)
-                     if stage_no > 0
-                     else 0)
+                    else 0)
 
-            self.current_stage = self.stages_controller.stage_order[0]
+        self.current_stage = self.stages_controller.stage_order[0]
 
-            self.acceleration = self.current_stage.acceleration
-            self.speed = self.initial_speed
+        self.acceleration = self.current_stage.acceleration
+        self.speed = self.initial_speed
 
-            roulette.logging.debug(f'''
-                  initial 1st phase speed: {self.stages_controller.stage_order[0].start_speed}
-                  1st phase duration: {self.stages_controller.stage_order[0].duration}
-                  1st phase accel: {self.stages_controller.stage_order[0].acceleration}
+        self.stages_controller.update_initial_angles(self.initial_angle)
 
-                  initial 2nd phase speed: {self.stages_controller.stage_order[1].start_speed}
-                  2nd phase duration: {self.stages_controller.stage_order[1].duration}
-                  2nd phase accel: {self.stages_controller.stage_order[1].acceleration}
+        roulette.logging.debug(f'''
+                initial 1st phase speed: {self.stages_controller.stage_order[0].start_speed}
+                1st phase duration: {self.stages_controller.stage_order[0].duration}
+                1st phase accel: {self.stages_controller.stage_order[0].acceleration}
 
-                  initial 3rd phase speed: {self.stages_controller.stage_order[2].start_speed}
-                  3rd phase duration: {self.stages_controller.stage_order[2].duration}
-                  3rd phase accel: {self.stages_controller.stage_order[2].acceleration}
+                initial 2nd phase speed: {self.stages_controller.stage_order[1].start_speed}
+                2nd phase duration: {self.stages_controller.stage_order[1].duration}
+                2nd phase accel: {self.stages_controller.stage_order[1].acceleration}
 
-                  total spin path: {self.stages_controller.stage_order[0].get_total_path()+
-                                    self.stages_controller.stage_order[1].get_total_path()+
-                                    self.stages_controller.stage_order[2].get_total_path()}
-                  total 1st phase path: {self.stages_controller.stage_order[0].get_total_path()}
-                  total 2nd phase path: {self.stages_controller.stage_order[1].get_total_path()}
-                  total 3rd phase path: {self.stages_controller.stage_order[2].get_total_path()}
+                initial 3rd phase speed: {self.stages_controller.stage_order[2].start_speed}
+                3rd phase duration: {self.stages_controller.stage_order[2].duration}
+                3rd phase accel: {self.stages_controller.stage_order[2].acceleration}
 
-                  relative spin path: {(self.stages_controller.stage_order[0].get_total_path() +
-                                        self.stages_controller.stage_order[1].get_total_path() +
-                                        self.stages_controller.stage_order[2].get_total_path() ) % 360}
-                  relative 1st phase path: {self.stages_controller.stage_order[0].get_total_path() % 360}
-                  relative 2nd phase path: {self.stages_controller.stage_order[1].get_total_path() % 360}
-                  relative 3rd phase path: {self.stages_controller.stage_order[2].get_total_path() % 360}
-                  
-                  total duration: {self.stages_controller.stage_order[0].duration +
-                                   self.stages_controller.stage_order[1].duration +
-                                   self.stages_controller.stage_order[2].duration}
+                total spin path: {self.stages_controller.stage_order[0].get_total_path()+
+                                self.stages_controller.stage_order[1].get_total_path()+
+                                self.stages_controller.stage_order[2].get_total_path()}
+                total 1st phase path: {self.stages_controller.stage_order[0].get_total_path()}
+                total 2nd phase path: {self.stages_controller.stage_order[1].get_total_path()}
+                total 3rd phase path: {self.stages_controller.stage_order[2].get_total_path()}
 
-                  target angle: {self.target_angle}
-                  target total path: {self.target_angle + 360 * self.spins_amount - self.initial_angle}
-                  target time: {self.spin_time}
-            ''')
+                relative spin path: {(self.stages_controller.stage_order[0].get_total_path() +
+                                    self.stages_controller.stage_order[1].get_total_path() +
+                                    self.stages_controller.stage_order[2].get_total_path() ) % 360}
+                relative 1st phase path: {self.stages_controller.stage_order[0].get_total_path() % 360}
+                relative 2nd phase path: {self.stages_controller.stage_order[1].get_total_path() % 360}
+                relative 3rd phase path: {self.stages_controller.stage_order[2].get_total_path() % 360}
+                
+                total duration: {self.stages_controller.stage_order[0].duration +
+                                self.stages_controller.stage_order[1].duration +
+                                self.stages_controller.stage_order[2].duration}
 
-            self.update()
+                target angle: {self.target_angle}
+                target total path: {self.target_angle + 360 * self.spins_amount - self.initial_angle}
+                target time: {self.spin_time}
+        ''')
+
+        self.update()
 
     def stop(self):
         roulette.logging.debug('--------spin start--------')

@@ -45,9 +45,9 @@ class Stages(Enum):
 
 class Stage:
     def __init__(
-            self, stage_type: Stages, duration: float,
-            start_time: float = 0, start_speed: float = 0,
-            end_speed: float = 0, total_spin_time: float = -1
+            self, stage_type: Stages, duration: float, start_time: float = 0,
+            start_speed: float = 0, end_speed: float = 0,
+            total_spin_time: float = -1, initial_angle: float = 0
     ) -> None:
         self.stage_type = stage_type
 
@@ -63,6 +63,7 @@ class Stage:
         if total_spin_time != -1:
             self.time_coefficient = self.duration / total_spin_time
 
+        self.initial_angle = initial_angle
         self.start_time = start_time
         self.start_speed = start_speed
         self.end_speed = end_speed
@@ -168,6 +169,13 @@ class StagesController:
             self.total_stages_duration = new_total_time
 
         self.total_spin_time = new_total_time
+
+    def update_initial_angles(self, initial_angle: float) -> None:
+        last_stop_angle = initial_angle
+        for stage in self.stage_order:
+            stage.initial_angle = last_stop_angle
+            last_stop_angle = last_stop_angle + stage.get_total_path()
+            last_stop_angle %= 360
 
     def next_stage(self, cur_time: float) -> Stage:
         self.get_current_stage(cur_time)
